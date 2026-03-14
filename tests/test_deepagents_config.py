@@ -15,7 +15,7 @@ from unittest.mock import MagicMock, patch
 
 import pytest
 
-from nanobot.config.deepagents_schema import (
+from nanobot_deep.config.schema import (
     DeepAgentsConfig,
     DeepAgentsInterruptConfig,
     DeepAgentsBackendConfig,
@@ -24,7 +24,7 @@ from nanobot.config.deepagents_schema import (
     DeepAgentsMiddlewareConfig,
     DeepAgentsSubagentConfig,
 )
-from nanobot.config.deepagents_loader import (
+from nanobot_deep.config.loader import (
     load_deepagents_config,
     save_deepagents_config,
     merge_with_nanobot_config,
@@ -313,10 +313,9 @@ class TestMergeWithNanobotConfig:
     """Tests for merging nanobot config with deepagents config."""
 
     def _make_nanobot_config(self, **kwargs):
-        """Create mock nanobot config."""
+        """Create mock nanobot config matching PyPI schema."""
         mock = MagicMock()
         mock.agents.defaults.max_tool_iterations = kwargs.get("max_tool_iterations", 40)
-        mock.agents.defaults.sandbox = kwargs.get("sandbox", "none")
         mock.tools.exec.timeout = kwargs.get("exec_timeout", 60)
         mock.tools.exec.path_append = kwargs.get("path_append", "")
         mock.tools.restrict_to_workspace = kwargs.get("restrict_to_workspace", False)
@@ -387,9 +386,7 @@ class TestMergeWithNanobotConfig:
 
         nanobot = self._make_nanobot_config()
 
-        with patch(
-            "nanobot.config.deepagents_loader.get_deepagents_config_path", return_value=dg_path
-        ):
+        with patch("nanobot_deep.config.loader.get_deepagents_config_path", return_value=dg_path):
             merged = merge_with_nanobot_config(nanobot)
 
         # deepagents.json settings preserved
@@ -421,9 +418,7 @@ class TestConfigPrecedence:
         mock.tools.restrict_to_workspace = False
         mock.workspace_path = Path("/workspace")
 
-        with patch(
-            "nanobot.config.deepagents_loader.get_deepagents_config_path", return_value=dg_path
-        ):
+        with patch("nanobot_deep.config.loader.get_deepagents_config_path", return_value=dg_path):
             merged = merge_with_nanobot_config(mock)
 
         # nanobot wins for shared field
@@ -450,9 +445,7 @@ class TestConfigPrecedence:
         mock.tools.restrict_to_workspace = False
         mock.workspace_path = Path("/workspace")
 
-        with patch(
-            "nanobot.config.deepagents_loader.get_deepagents_config_path", return_value=dg_path
-        ):
+        with patch("nanobot_deep.config.loader.get_deepagents_config_path", return_value=dg_path):
             merged = merge_with_nanobot_config(mock)
 
         # deepagents-specific preserved
@@ -473,7 +466,7 @@ class TestConfigPrecedence:
         mock.workspace_path = Path("/workspace")
 
         with patch(
-            "nanobot.config.deepagents_loader.get_deepagents_config_path",
+            "nanobot_deep.config.loader.get_deepagents_config_path",
             return_value=Path("/nonexistent/deepagents.json"),
         ):
             merged = merge_with_nanobot_config(mock)
@@ -505,9 +498,7 @@ class TestConfigPrecedence:
         mock.tools.restrict_to_workspace = True
         mock.workspace_path = Path("/workspace")
 
-        with patch(
-            "nanobot.config.deepagents_loader.get_deepagents_config_path", return_value=dg_path
-        ):
+        with patch("nanobot_deep.config.loader.get_deepagents_config_path", return_value=dg_path):
             merged = merge_with_nanobot_config(mock)
 
         # nanobot wins for backend settings
@@ -540,9 +531,7 @@ class TestConfigPrecedence:
         mock.tools.restrict_to_workspace = False
         mock.workspace_path = Path("/workspace")
 
-        with patch(
-            "nanobot.config.deepagents_loader.get_deepagents_config_path", return_value=dg_path
-        ):
+        with patch("nanobot_deep.config.loader.get_deepagents_config_path", return_value=dg_path):
             merged = merge_with_nanobot_config(mock)
 
         assert len(merged.subagents) == 1

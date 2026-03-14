@@ -117,13 +117,11 @@ def merge_with_nanobot_config(
 
     merged.recursion_limit = defaults.max_tool_iterations + 10
 
-    sandbox = defaults.sandbox
-    if sandbox and sandbox != "none":
-        pass
-
     merged.backend.exec_timeout = nanobot_config.tools.exec.timeout
     merged.backend.path_append = nanobot_config.tools.exec.path_append
-    merged.backend.restrict_to_workspace = nanobot_config.tools.restrict_to_workspace
+    merged.backend.restrict_to_workspace = getattr(
+        nanobot_config.tools, "restrict_to_workspace", False
+    )
 
     if not deepagents_config.skills or len(deepagents_config.skills) == 0:
         merged.skills = [str(workspace / "skills")]

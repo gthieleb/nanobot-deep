@@ -9,12 +9,10 @@ Also handles streaming updates and progress reporting.
 
 from __future__ import annotations
 
-import asyncio
-from datetime import datetime
 from pathlib import Path
 from typing import TYPE_CHECKING, Any, Awaitable, Callable
 
-from langchain_core.messages import HumanMessage, AIMessage, ToolMessage, SystemMessage
+from langchain_core.messages import AIMessage, HumanMessage, SystemMessage, ToolMessage
 from langchain_core.runnables import RunnableConfig
 from langgraph.graph.state import CompiledStateGraph
 from loguru import logger
@@ -22,6 +20,8 @@ from loguru import logger
 if TYPE_CHECKING:
     from langgraph.checkpoint.sqlite.aio import AsyncSqliteSaver
     from nanobot.bus.events import InboundMessage, OutboundMessage
+
+    from nanobot_deep.langgraph.checkpointer import SessionCheckpointer
 
 
 def translate_inbound_to_state(

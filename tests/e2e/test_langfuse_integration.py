@@ -4,11 +4,10 @@ These tests verify that Langfuse integration works when a self-hosted
 Langfuse instance is reachable.
 
 Run with:
-    # Start Langfuse first:
-    docker compose -f docker-compose.langfuse.yml up -d
+    cd docker && docker compose -f docker-compose.langfuse.yml up -d
 
     # Run tests:
-    pytest tests/e2e/test_langfuse_integration.py -v -m langfuse
+    pytest tests/e2e/test_langfuse_integration.py -v
 
 Environment variables required:
     LANGFUSE_PUBLIC_KEY: Langfuse public key
@@ -119,7 +118,11 @@ class TestLangfuseTraceCreation:
     """Test that traces are created in Langfuse."""
 
     @pytest.mark.asyncio
+<<<<<<< HEAD
     @pytest.mark.timeout(30)
+=======
+    @pytest.mark.timeout(60)
+>>>>>>> f8eadcf (Add Langfuse self-hosted Docker Compose and OTEL integration)
     async def test_simple_trace_created(
         self, langfuse_reachable, langfuse_credentials, langfuse_host, langfuse_client
     ):
@@ -146,7 +149,11 @@ class TestLangfuseTraceCreation:
         config.langfuse.session_id = trace_id
 
     @pytest.mark.asyncio
+<<<<<<< HEAD
     @pytest.mark.timeout(30)
+=======
+    @pytest.mark.timeout(90)
+>>>>>>> f8eadcf (Add Langfuse self-hosted Docker Compose and OTEL integration)
     async def test_trace_with_tool_calls(
         self, langfuse_reachable, langfuse_credentials, langfuse_host, tmp_path
     ):

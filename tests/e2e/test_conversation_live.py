@@ -8,8 +8,6 @@ Run with:
 
 from __future__ import annotations
 
-import asyncio
-
 import pytest
 
 from nanobot.bus.events import InboundMessage

@@ -2,12 +2,9 @@
 
 from __future__ import annotations
 
-import asyncio
 from pathlib import Path
-from typing import Any
 
 from rich.console import Console
-from loguru import logger
 
 console = Console()
 
@@ -35,7 +32,7 @@ async def run_ralph_mode(
     try:
         from deepagents import create_deep_agent
         from deepagents.backends import FilesystemBackend
-        from deepagents.backends.protocol import BackendProtocol, BackendFactory
+        from deepagents.backends.protocol import BackendFactory, BackendProtocol
     except ImportError as e:
         raise ImportError(
             "deepagents is required for Ralph mode. Install with: pip install deepagents"

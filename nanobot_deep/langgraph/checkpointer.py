@@ -8,16 +8,14 @@ Wraps LangGraph's SqliteSaver with:
 from __future__ import annotations
 
 import json
-from contextlib import closing, contextmanager
 from datetime import datetime
 from pathlib import Path
-from typing import Any, Iterator
+from typing import Any
 
 from langchain_core.runnables import RunnableConfig
 from langgraph.checkpoint.base import (
     Checkpoint,
     CheckpointMetadata,
-    CheckpointTuple,
 )
 from langgraph.checkpoint.sqlite import SqliteSaver
 from loguru import logger

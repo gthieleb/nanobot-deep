@@ -15,7 +15,6 @@ import pytest
 
 if TYPE_CHECKING:
     from nanobot.bus.queue import MessageBus
-    from nanobot.agent.loop import AgentLoop
 
 
 def pytest_configure(config):
@@ -72,8 +71,8 @@ async def live_gateway(
         - agent: AgentLoop instance
         - provider: LLM provider
     """
-    from nanobot.bus.queue import MessageBus
     from nanobot.agent.loop import AgentLoop
+    from nanobot.bus.queue import MessageBus
 
     bus = MessageBus()
 
@@ -110,8 +109,8 @@ async def live_gateway_no_cancel(
     live_model: str,
 ):
     """Start gateway without auto-cancellation (for tests that need to stop manually)."""
-    from nanobot.bus.queue import MessageBus
     from nanobot.agent.loop import AgentLoop
+    from nanobot.bus.queue import MessageBus
 
     bus = MessageBus()
 
@@ -179,7 +178,7 @@ async def send_and_wait():
         chat_id: str = "chat1",
         timeout: float = 60.0,
     ):
-        from nanobot.bus.events import InboundMessage, OutboundMessage
+        from nanobot.bus.events import InboundMessage
 
         await bus.publish_inbound(
             InboundMessage(

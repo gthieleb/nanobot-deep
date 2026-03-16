@@ -20,7 +20,7 @@ Usage:
 from __future__ import annotations
 
 from pathlib import Path
-from typing import Any, Literal
+from typing import Literal
 
 from pydantic import BaseModel, Field
 
@@ -119,6 +119,41 @@ class DeepAgentsTaskRoutingConfig(BaseConfig):
     delegate_threshold_tokens: int = 1000
 
 
+class DeepAgentsLangfuseConfig(BaseConfig):
+    """Langfuse observability configuration.
+
+    Enable tracing and monitoring of agent execution with Langfuse.
+    Supports both Langfuse Cloud and self-hosted instances.
+
+    Environment variables (take precedence over config):
+        LANGFUSE_PUBLIC_KEY: Public key for authentication
+        LANGFUSE_SECRET_KEY: Secret key for authentication
+        LANGFUSE_HOST: Langfuse server URL (default: https://cloud.langfuse.com)
+
+    Example:
+        ```json
+        {
+            "langfuse": {
+                "enabled": true,
+                "public_key": "pk-lf-...",
+                "secret_key": "sk-lf-...",
+                "host": "http://localhost:3000"
+            }
+        }
+        ```
+    """
+
+    enabled: bool = False
+    public_key: str | None = None
+    secret_key: str | None = None
+    host: str = "http://localhost:3000"
+    environment: str = "development"
+    session_id: str | None = None
+    user_id: str | None = None
+    tags: list[str] = Field(default_factory=list)
+    metadata: dict[str, str] = Field(default_factory=dict)
+
+
 class DeepAgentsConfig(BaseConfig):
     """DeepAgents-specific configuration.
 
@@ -151,6 +186,8 @@ class DeepAgentsConfig(BaseConfig):
     middleware: DeepAgentsMiddlewareConfig = Field(default_factory=DeepAgentsMiddlewareConfig)
 
     task_routing: DeepAgentsTaskRoutingConfig = Field(default_factory=DeepAgentsTaskRoutingConfig)
+
+    langfuse: DeepAgentsLangfuseConfig = Field(default_factory=DeepAgentsLangfuseConfig)
 
     def get_skills_paths(self, workspace: Path | None = None) -> list[str]:
         """Get expanded skills paths."""

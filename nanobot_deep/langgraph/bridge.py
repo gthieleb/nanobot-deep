@@ -20,8 +20,8 @@ from langgraph.graph.state import CompiledStateGraph
 from loguru import logger
 
 if TYPE_CHECKING:
+    from langgraph.checkpoint.sqlite.aio import AsyncSqliteSaver
     from nanobot.bus.events import InboundMessage, OutboundMessage
-    from nanobot_deep.langgraph.checkpointer import SessionCheckpointer
 
 
 def translate_inbound_to_state(
@@ -198,7 +198,7 @@ class LangGraphBridge:
     def __init__(
         self,
         agent: CompiledStateGraph,
-        checkpointer: "SessionCheckpointer",
+        checkpointer: "AsyncSqliteSaver",
         workspace: Path | None = None,
     ):
         self.agent = agent
@@ -343,16 +343,13 @@ class LangGraphBridge:
         response = await self.process(msg, on_progress=_progress)
         return response.content
 
-    def clear_session(self, session_key: str) -> bool:
+    def clear_session(self, session_key: str) -> None:
         """Clear a session's checkpoint history.
 
         Args:
             session_key: The session to clear
-
-        Returns:
-            True if session was deleted
         """
-        return self.checkpointer.delete_session(session_key)
+        self.checkpointer.delete_thread(session_key)
 
     def get_history(self, session_key: str, limit: int = 100) -> list[dict]:
         """Get message history for a session.
@@ -364,4 +361,6 @@ class LangGraphBridge:
         Returns:
             List of message dicts
         """
-        return self.checkpointer.get_session_history(session_key, limit)
+        from nanobot_deep.langgraph.checkpointer import get_session_history
+
+        return get_session_history(self.checkpointer, session_key, limit)

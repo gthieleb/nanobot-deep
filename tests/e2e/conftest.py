@@ -1,7 +1,12 @@
 """Pytest fixtures for E2E tests with real LLM calls.
 
 Usage:
-    NANOBOT_TEST_API_KEY=sk-... pytest tests/e2e/ -m live -v
+    NANOBOT_TEST_CONFIG=~/.nanobot/config.json pytest tests/e2e/ -m live -v
+
+The tests use a minimal deepagents config (tests/e2e/deepagents.test.json) to reduce
+token usage and API costs. This config disables most middleware and uses low max_tokens.
+
+To use your own deepagents config, set NANOBOT_TEST_DEEPAGENTS_CONFIG env var.
 """
 
 from __future__ import annotations
@@ -15,39 +20,36 @@ import pytest
 
 if TYPE_CHECKING:
     from nanobot.bus.queue import MessageBus
-    from nanobot.agent.loop import AgentLoop
+    from nanobot.config.schema import Config
 
 
 def pytest_configure(config):
     """Register custom markers."""
     config.addinivalue_line("markers", "live: tests that require real LLM API key (expensive)")
     config.addinivalue_line("markers", "slow: tests that take more than 60 seconds")
+    config.addinivalue_line("markers", "timeout: set test timeout in seconds")
 
 
 @pytest.fixture
-def live_api_key() -> str:
-    """Get API key for live tests."""
-    key = os.environ.get("NANOBOT_TEST_API_KEY")
-    if not key:
-        pytest.skip("Set NANOBOT_TEST_API_KEY to run live tests")
-    return key
+def live_config_path() -> Path:
+    """Get path to nanobot config.json."""
+    config_path = os.environ.get("NANOBOT_TEST_CONFIG")
+    if not config_path:
+        pytest.skip("Set NANOBOT_TEST_CONFIG=/path/to/config.json to run live tests")
+
+    path = Path(config_path).expanduser().resolve()
+    if not path.exists():
+        pytest.skip(f"Config file not found: {path}")
+    return path
 
 
 @pytest.fixture
-def live_model() -> str:
-    """Get model for live tests."""
-    return os.environ.get("NANOBOT_TEST_MODEL", "anthropic/claude-sonnet-4-5")
-
-
-@pytest.fixture
-def live_provider(live_api_key: str, live_model: str):
-    """Create real LLM provider for live tests."""
-    from nanobot.providers.litellm_provider import LiteLLMProvider
-
-    return LiteLLMProvider(
-        api_key=live_api_key,
-        default_model=live_model,
-    )
+def test_deepagents_config_path() -> Path:
+    """Get path to test deepagents config."""
+    config_path = os.environ.get("NANOBOT_TEST_DEEPAGENTS_CONFIG")
+    if config_path:
+        return Path(config_path).expanduser().resolve()
+    return Path(__file__).parent / "deepagents.test.json"
 
 
 @pytest.fixture
@@ -60,85 +62,79 @@ def workspace(tmp_path: Path) -> Path:
 
 
 @pytest.fixture
-async def live_gateway(
-    workspace: Path,
-    live_provider,
-    live_model: str,
-):
-    """Start gateway with real LLM for live testing.
+def live_config(live_config_path: Path, workspace: Path) -> "Config":
+    """Load nanobot config for live tests.
 
-    Yields dict with:
-        - bus: MessageBus for sending/receiving messages
-        - agent: AgentLoop instance
-        - provider: LLM provider
+    Uses NANOBOT_TEST_CONFIG env var pointing to a real nanobot config.json.
+    The workspace is overridden to a temp directory for test isolation.
     """
-    from nanobot.bus.queue import MessageBus
-    from nanobot.agent.loop import AgentLoop
+    from nanobot.config.loader import load_config, set_config_path
 
-    bus = MessageBus()
+    set_config_path(live_config_path)
+    config = load_config(live_config_path)
 
-    agent = AgentLoop(
-        bus=bus,
-        provider=live_provider,
-        workspace=workspace,
-        model=live_model,
-        max_iterations=10,
-        temperature=0.1,
-    )
+    config.agents.defaults.workspace = str(workspace)
 
-    agent_task = asyncio.create_task(agent.run())
-
-    yield {
-        "bus": bus,
-        "agent": agent,
-        "provider": live_provider,
-        "workspace": workspace,
-    }
-
-    agent.stop()
-    agent_task.cancel()
-    try:
-        await asyncio.wait_for(agent_task, timeout=2.0)
-    except (asyncio.CancelledError, asyncio.TimeoutError):
-        pass
+    return config
 
 
 @pytest.fixture
-async def live_gateway_no_cancel(
-    workspace: Path,
-    live_provider,
-    live_model: str,
+async def live_deep_gateway(
+    live_config: "Config", workspace: Path, test_deepagents_config_path: Path
 ):
-    """Start gateway without auto-cancellation (for tests that need to stop manually)."""
-    from nanobot.bus.queue import MessageBus
-    from nanobot.agent.loop import AgentLoop
+    """Start DeepGateway with DeepAgent for live testing.
 
-    bus = MessageBus()
+    Yields dict with:
+        - bus: MessageBus for sending/receiving messages
+        - agent: DeepAgent instance
+        - gateway: DeepGateway instance
+        - workspace: workspace path
+    """
+    import aiosqlite
+    from langgraph.checkpoint.sqlite.aio import AsyncSqliteSaver
 
-    agent = AgentLoop(
-        bus=bus,
-        provider=live_provider,
+    from nanobot_deep.agent.deep_agent import DeepAgent
+    from nanobot_deep.config.loader import load_deepagents_config
+    from nanobot_deep.gateway import DeepGateway
+
+    db_path = workspace.parent / "sessions.db"
+
+    conn = await aiosqlite.connect(str(db_path))
+    checkpointer = AsyncSqliteSaver(conn)
+    await checkpointer.setup()
+
+    gateway = DeepGateway(live_config, workspace, verbose=False)
+    gateway.checkpointer = checkpointer
+
+    deepagents_config = load_deepagents_config(test_deepagents_config_path)
+
+    gateway.agent = DeepAgent(
         workspace=workspace,
-        model=live_model,
-        max_iterations=10,
-        temperature=0.1,
+        config=live_config,
+        checkpointer=checkpointer,
+        deepagents_config=deepagents_config,
     )
 
-    agent_task = asyncio.create_task(agent.run())
+    gateway._running = True
+    inbound_task = asyncio.create_task(gateway._consume_inbound_loop())
 
     yield {
-        "bus": bus,
-        "agent": agent,
-        "provider": live_provider,
+        "bus": gateway.bus,
+        "agent": gateway.agent,
+        "gateway": gateway,
         "workspace": workspace,
-        "task": agent_task,
+        "checkpointer": checkpointer,
     }
 
-    agent.stop()
+    gateway._running = False
+    inbound_task.cancel()
     try:
-        await asyncio.wait_for(agent_task, timeout=5.0)
+        await asyncio.wait_for(inbound_task, timeout=2.0)
     except (asyncio.CancelledError, asyncio.TimeoutError):
         pass
+
+    if gateway.agent:
+        await gateway.agent.close()
 
 
 @pytest.fixture
@@ -179,7 +175,7 @@ async def send_and_wait():
         chat_id: str = "chat1",
         timeout: float = 60.0,
     ):
-        from nanobot.bus.events import InboundMessage, OutboundMessage
+        from nanobot.bus.events import InboundMessage
 
         await bus.publish_inbound(
             InboundMessage(

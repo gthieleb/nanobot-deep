@@ -55,8 +55,8 @@ class DeepAgent:
         deepagents_config: Optional DeepAgentsConfig (loaded if None)
 
     Example:
-        >>> from nanobot.langgraph import SessionCheckpointer
-        >>> checkpointer = SessionCheckpointer()
+        >>> from langgraph.checkpoint.sqlite import SqliteSaver
+        >>> checkpointer = SqliteSaver.from_conn_string("sessions.db")
         >>> agent = DeepAgent(workspace, config, checkpointer)
         >>> response = await agent.process(msg)
     """
@@ -85,8 +85,7 @@ class DeepAgent:
         self._mcp_servers = config.tools.mcp_servers if hasattr(config, "tools") else {}
 
     def _init_model(self) -> Any:
-        """Initialize model with config from nanobot and deepagents."""
-        from langchain.chat_models import init_chat_model
+        from langchain_litellm import ChatLiteLLM
 
         model_name = self.dg_config.model.name
         api_key = self.dg_config.model.api_key
@@ -102,17 +101,23 @@ class DeepAgent:
                     api_base = provider_config.api_base
 
         if not model_name:
-            model_name = "anthropic:claude-sonnet-4-5"
+            model_name = "anthropic/claude-sonnet-4-5"
 
-        kwargs = {}
+        logger.debug(
+            f"Initializing model: {model_name}, max_tokens={self.dg_config.model.max_tokens}"
+        )
+
+        kwargs = {
+            "model": model_name,
+            "max_tokens": self.dg_config.model.max_tokens,
+            "temperature": self.dg_config.model.temperature,
+        }
         if api_key:
             kwargs["api_key"] = api_key
         if api_base:
-            kwargs["base_url"] = api_base
-        kwargs["max_tokens"] = self.dg_config.model.max_tokens
-        kwargs["temperature"] = self.dg_config.model.temperature
+            kwargs["api_base"] = api_base
 
-        return init_chat_model(model_name, **kwargs)
+        return ChatLiteLLM(**kwargs)
 
     def _init_backend(self) -> BackendProtocol:
         """Get or create the backend for file operations."""
@@ -261,22 +266,13 @@ Skills are available at: {self.workspace}/skills/ (read SKILL.md files as needed
         on_progress: Callable[[str, bool], Awaitable[None]] | None = None,
         history: list[dict] | None = None,
     ) -> "OutboundMessage":
-        """Process an inbound message.
-
-        Args:
-            msg: The inbound message
-            on_progress: Optional callback for progress updates
-            history: Optional conversation history
-
-        Returns:
-            OutboundMessage with the response
-        """
         from nanobot.bus.events import OutboundMessage
         from nanobot_deep.langgraph.bridge import (
             translate_inbound_to_state,
             translate_result_to_outbound,
         )
 
+        logger.debug(f"Processing message from {msg.channel}/{msg.chat_id}: {msg.content[:100]}...")
         await self._connect_mcp()
 
         should_delegate, delegate_type = self._should_delegate(msg)
@@ -292,16 +288,21 @@ Skills are available at: {self.workspace}/skills/ (read SKILL.md files as needed
             },
         }
 
+        logger.debug(
+            f"Invoking agent with session_key={msg.session_key}, delegate_type={delegate_type}"
+        )
+
         try:
             if on_progress:
                 result = await self._invoke_with_progress(state, config, on_progress)
             else:
                 result = await self.agent.ainvoke(state, config)
 
+            logger.debug(f"Agent returned result with {len(result.get('messages', []))} messages")
             return translate_result_to_outbound(result, msg)
 
         except Exception as e:
-            logger.exception("Error in deep agent")
+            logger.exception(f"Error in deep agent: {e}")
             return OutboundMessage(
                 channel=msg.channel,
                 chat_id=msg.chat_id,
@@ -388,16 +389,17 @@ Skills are available at: {self.workspace}/skills/ (read SKILL.md files as needed
         response = await self.process(msg, on_progress=_progress)
         return response.content
 
-    def clear_session(self, session_key: str) -> bool:
+    def clear_session(self, session_key: str) -> None:
         """Clear a session's history."""
         if self.checkpointer:
-            return self.checkpointer.delete_session(session_key)
-        return False
+            self.checkpointer.delete_thread(session_key)
 
     def get_history(self, session_key: str, limit: int = 100) -> list[dict]:
         """Get message history for a session."""
         if self.checkpointer:
-            return self.checkpointer.get_session_history(session_key, limit)
+            from nanobot_deep.langgraph.checkpointer import get_session_history
+
+            return get_session_history(self.checkpointer, session_key, limit)
         return []
 
     async def close(self) -> None:

@@ -114,7 +114,11 @@ def gateway(
     if verbose:
         import logging
 
+        from loguru import logger
+
         logging.basicConfig(level=logging.DEBUG)
+        logger.enable("nanobot")
+        logger.enable("nanobot_deep")
 
     nanobot_config = _load_config(config, workspace)
 
@@ -168,20 +172,29 @@ def agent(
 
     from nanobot_deep.agent.deep_agent import DeepAgent
     from nanobot_deep.config.loader import load_deepagents_config
-    from nanobot_deep.langgraph.checkpointer import SessionCheckpointer
 
     db_path = nanobot_config.workspace_path.parent / "sessions.db"
-    checkpointer = SessionCheckpointer(db_path, migrate_from_json=True)
-    checkpointer.setup()
 
     deepagents_config = load_deepagents_config()
 
-    agent_instance = DeepAgent(
-        workspace=nanobot_config.workspace_path,
-        config=nanobot_config,
-        checkpointer=checkpointer,
-        deepagents_config=deepagents_config,
-    )
+    async def _create_checkpointer():
+        import aiosqlite
+
+        from langgraph.checkpoint.sqlite.aio import AsyncSqliteSaver
+
+        conn = await aiosqlite.connect(str(db_path))
+        checkpointer = AsyncSqliteSaver(conn)
+        await checkpointer.setup()
+        return checkpointer
+
+    async def _create_agent():
+        checkpointer = await _create_checkpointer()
+        return DeepAgent(
+            workspace=nanobot_config.workspace_path,
+            config=nanobot_config,
+            checkpointer=checkpointer,
+            deepagents_config=deepagents_config,
+        )
 
     def _print_response(response: str) -> None:
         content = response or ""
@@ -204,6 +217,7 @@ def agent(
     if message:
 
         async def run_once():
+            agent_instance = await _create_agent()
             with _thinking_ctx():
                 response = await agent_instance.process_direct(
                     message,
@@ -246,6 +260,7 @@ def agent(
             signal.signal(signal.SIGPIPE, signal.SIG_IGN)
 
         async def run_interactive():
+            agent_instance = await _create_agent()
             try:
                 while True:
                     try:

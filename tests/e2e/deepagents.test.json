@@ -1,0 +1,47 @@
+{
+  "$schema": "../templates/deepagents.schema.json",
+  "model": {
+    "max_tokens": 1000,
+    "temperature": 1.0
+  },
+  "recursion_limit": 50,
+  "debug": false,
+  "name": "nanobot-deep-test-agent",
+  "backend": {
+    "restrict_to_workspace": false,
+    "exec_timeout": 30,
+    "path_append": ""
+  },
+  "checkpointer": {
+    "type": "sqlite",
+    "path": ""
+  },
+  "skills": [],
+  "memory": [],
+  "subagents": [],
+  "interrupt_on": {
+    "edit_file": false,
+    "write_file": false,
+    "execute": false,
+    "all_tools": false
+  },
+  "summarization": {
+    "enabled": false,
+    "trigger_tokens": 100000,
+    "keep_messages": 10
+  },
+  "middleware": {
+    "enable_todolist": false,
+    "enable_summarization": false,
+    "enable_prompt_caching": false,
+    "enable_skills": false,
+    "enable_memory": false,
+    "enable_subagents": false,
+    "enable_filesystem": true
+  },
+  "task_routing": {
+    "auto_delegate_reply_to": false,
+    "control_commands": [],
+    "delegate_threshold_tokens": 1000
+  }
+}

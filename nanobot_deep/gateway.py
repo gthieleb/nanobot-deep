@@ -20,13 +20,13 @@ from typing import TYPE_CHECKING
 from loguru import logger
 
 if TYPE_CHECKING:
+    from langgraph.checkpoint.sqlite.aio import AsyncSqliteSaver
     from nanobot.bus.events import InboundMessage
     from nanobot.bus.queue import MessageBus
     from nanobot.channels.manager import ChannelManager
     from nanobot.config.schema import Config
 
     from nanobot_deep.agent.deep_agent import DeepAgent
-    from nanobot_deep.langgraph.checkpointer import SessionCheckpointer
 
 
 class DeepGateway:
@@ -63,44 +63,61 @@ class DeepGateway:
         self.bus: "MessageBus" = MessageBus()
         self.channels: "ChannelManager" = ChannelManager(config, self.bus)
         self.agent: "DeepAgent | None" = None
-        self.checkpointer: "SessionCheckpointer | None" = None
+        self.checkpointer: "AsyncSqliteSaver | None" = None
 
         self._running = False
         self._shutdown_event = asyncio.Event()
 
-    def _setup_checkpointer(self) -> "SessionCheckpointer":
+    async def _setup_checkpointer(self) -> "AsyncSqliteSaver":
         """Create and setup the session checkpointer."""
-        from nanobot_deep.langgraph.checkpointer import SessionCheckpointer
+        import aiosqlite
+
+        from langgraph.checkpoint.sqlite.aio import AsyncSqliteSaver
 
         db_path = self.workspace.parent / "sessions.db"
-        checkpointer = SessionCheckpointer(db_path, migrate_from_json=True)
-        checkpointer.setup()
+        conn = await aiosqlite.connect(str(db_path))
+        checkpointer = AsyncSqliteSaver(conn)
+        await checkpointer.setup()
         return checkpointer
 
-    def _setup_agent(self) -> "DeepAgent":
-        """Create the DeepAgent instance."""
+    async def _setup_agent(self) -> "DeepAgent":
         from nanobot_deep.agent.deep_agent import DeepAgent
         from nanobot_deep.config.loader import load_deepagents_config
 
-        self.checkpointer = self._setup_checkpointer()
-        deepagents_config = load_deepagents_config()
+        logger.debug("Setting up checkpointer...")
+        self.checkpointer = await self._setup_checkpointer()
+        logger.debug(f"Checkpointer ready: {type(self.checkpointer).__name__}")
 
+        deepagents_config = load_deepagents_config()
+        logger.debug(
+            f"Loaded deepagents config: model={deepagents_config.model.name or 'from nanobot config'}"
+        )
+
+        if self.verbose:
+            deepagents_config.debug = True
+
+        logger.debug("Creating DeepAgent instance...")
         agent = DeepAgent(
             workspace=self.workspace,
             config=self.config,
             checkpointer=self.checkpointer,
             deepagents_config=deepagents_config,
         )
+        logger.debug("DeepAgent instance created")
         return agent
 
     async def _process_inbound(self, msg: "InboundMessage") -> None:
-        """Process an inbound message through DeepAgent."""
         if self.agent is None:
             logger.error("Agent not initialized")
             return
 
+        logger.debug(
+            f"Processing inbound: channel={msg.channel}, chat_id={msg.chat_id}, content={msg.content[:100]}..."
+        )
+
         try:
             response = await self.agent.process(msg)
+            logger.debug(f"Agent response: {response.content[:100]}...")
             await self.bus.publish_outbound(response)
         except Exception as e:
             logger.exception(f"Error processing message: {e}")
@@ -138,7 +155,7 @@ class DeepGateway:
 
         sync_workspace_templates(self.workspace)
 
-        self.agent = self._setup_agent()
+        self.agent = await self._setup_agent()
 
         if self.channels.enabled_channels:
             logger.info(f"Channels enabled: {', '.join(self.channels.enabled_channels)}")

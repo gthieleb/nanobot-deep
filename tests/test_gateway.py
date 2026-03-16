@@ -26,8 +26,12 @@ class TestDeepGateway:
             assert gateway.checkpointer is None
             assert gateway._running is False
 
-    def test_gateway_setup_checkpointer(self, tmp_path):
+    @pytest.mark.asyncio
+    async def test_gateway_setup_checkpointer(self, tmp_path):
         """Test checkpointer setup."""
+        import aiosqlite
+
+        from langgraph.checkpoint.sqlite.aio import AsyncSqliteSaver
         from nanobot_deep.gateway import DeepGateway
 
         config = self._create_mock_config(tmp_path)
@@ -35,16 +39,18 @@ class TestDeepGateway:
         with patch("nanobot.channels.manager.ChannelManager"):
             gateway = DeepGateway(config, tmp_path)
 
-            with patch(
-                "nanobot_deep.langgraph.checkpointer.SessionCheckpointer"
-            ) as mock_checkpointer_cls:
-                mock_checkpointer = MagicMock()
-                mock_checkpointer_cls.return_value = mock_checkpointer
+            mock_conn = MagicMock()
+            mock_checkpointer = MagicMock()
+            mock_checkpointer.setup = AsyncMock()
 
-                checkpointer = gateway._setup_checkpointer()
+            with patch.object(aiosqlite, "connect", new_callable=AsyncMock) as mock_connect:
+                mock_connect.return_value = mock_conn
+                with patch.object(AsyncSqliteSaver, "__init__", return_value=None):
+                    with patch.object(AsyncSqliteSaver, "setup", mock_checkpointer.setup):
+                        checkpointer = await gateway._setup_checkpointer()
 
-                assert checkpointer is not None
-                mock_checkpointer_cls.assert_called_once()
+                        assert checkpointer is not None
+                        mock_connect.assert_called_once()
 
     def test_gateway_stop(self, tmp_path):
         """Test gateway stop signal."""

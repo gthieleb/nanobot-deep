@@ -5,10 +5,15 @@ Usage:
     export NANOBOT_CONFIG_PATH=~/.nanobot/config.json
     # Optional: Override DeepAgents config.toml path
     export DEEPAGENTS_CONFIG_PATH=~/.deepagents/config.toml
+    # Optional: Use minimal deepagents test config
+    export NANOBOT_TEST_DEEPAGENTS_CONFIG=tests/e2e/deepagents.test.json
     pytest tests/e2e/ -m live -v
 
     # Option 2: Override DeepAgents model
     DEEPAGENTS_TEST_MODEL=openai:gpt-4o-mini pytest tests/e2e/ -m live -v
+
+    # Option 3: Explicit nanobot config path
+    NANOBOT_TEST_CONFIG=~/.nanobot/config.json pytest tests/e2e/ -m live -v
 
     # Telegram E2E tests (require real Telegram user account):
     # 1. Get API credentials: https://my.telegram.org/apps
@@ -45,18 +50,22 @@ def pytest_configure(config):
 def nanobot_test_config() -> "Config":
     """Load nanobot config for tests.
 
-    Uses NANOBOT_CONFIG_PATH env var if set, otherwise default ~/.nanobot/config.json
+    Uses NANOBOT_TEST_CONFIG or NANOBOT_CONFIG_PATH if set, otherwise default
+    ~/.nanobot/config.json.
     """
     from nanobot.config.loader import load_config
 
-    config_path = os.environ.get("NANOBOT_CONFIG_PATH")
+    config_path = os.environ.get("NANOBOT_TEST_CONFIG") or os.environ.get("NANOBOT_CONFIG_PATH")
     if config_path:
         config_path = Path(config_path)
     else:
         config_path = Path.home() / ".nanobot" / "config.json"
 
     if not config_path.exists():
-        pytest.skip(f"Config not found at {config_path}. Set NANOBOT_CONFIG_PATH or create config.")
+        pytest.skip(
+            f"Config not found at {config_path}. Set NANOBOT_TEST_CONFIG or "
+            "NANOBOT_CONFIG_PATH, or create a default config."
+        )
 
     return load_config(config_path)
 
@@ -329,7 +338,16 @@ async def deep_checkpointer(workspace: Path):
 @pytest.fixture
 def deep_agent_config():
     """Create DeepAgents runtime config for live tests."""
+    from nanobot_deep.config.loader import load_deepagents_config
     from nanobot_deep.config.schema import DeepAgentsConfig
+
+    config_path = os.environ.get("NANOBOT_TEST_DEEPAGENTS_CONFIG")
+    if config_path:
+        return load_deepagents_config(Path(config_path).expanduser().resolve())
+
+    default_path = Path(__file__).parent / "deepagents.test.json"
+    if default_path.exists():
+        return load_deepagents_config(default_path)
 
     return DeepAgentsConfig(recursion_limit=50, debug=False)
 

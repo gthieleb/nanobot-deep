@@ -1,7 +1,12 @@
 """Pytest fixtures for E2E tests with real LLM calls.
 
 Usage:
-    NANOBOT_TEST_API_KEY=sk-... pytest tests/e2e/ -m live -v
+    # Option 1: Use existing nanobot config (recommended)
+    export NANOBOT_CONFIG_PATH=~/.nanobot/config.json
+    pytest tests/e2e/ -m live -v
+
+    # Option 2: Override with env vars (takes precedence)
+    NANOBOT_TEST_MODEL=gpt-5-mini pytest tests/e2e/ -m live -v
 """
 
 from __future__ import annotations
@@ -16,6 +21,7 @@ import pytest
 if TYPE_CHECKING:
     from nanobot.bus.queue import MessageBus
     from nanobot.agent.loop import AgentLoop
+    from nanobot.config.schema import Config
 
 
 def pytest_configure(config):
@@ -25,18 +31,49 @@ def pytest_configure(config):
 
 
 @pytest.fixture
-def live_api_key() -> str:
-    """Get API key for live tests."""
-    key = os.environ.get("NANOBOT_TEST_API_KEY")
-    if not key:
-        pytest.skip("Set NANOBOT_TEST_API_KEY to run live tests")
-    return key
+def nanobot_test_config() -> "Config":
+    """Load nanobot config for tests.
+
+    Uses NANOBOT_CONFIG_PATH env var if set, otherwise default ~/.nanobot/config.json
+    """
+    from nanobot.config.loader import load_config
+
+    config_path = os.environ.get("NANOBOT_CONFIG_PATH")
+    if config_path:
+        config_path = Path(config_path)
+    else:
+        config_path = Path.home() / ".nanobot" / "config.json"
+
+    if not config_path.exists():
+        pytest.skip(f"Config not found at {config_path}. Set NANOBOT_CONFIG_PATH or create config.")
+
+    return load_config(config_path)
 
 
 @pytest.fixture
-def live_model() -> str:
-    """Get model for live tests."""
-    return os.environ.get("NANOBOT_TEST_MODEL", "anthropic/claude-sonnet-4-5")
+def live_api_key(nanobot_test_config: "Config") -> str:
+    """Get API key for live tests from config or env var."""
+    key = os.environ.get("NANOBOT_TEST_API_KEY")
+    if key:
+        return key
+
+    model = nanobot_test_config.agents.defaults.model
+    provider_config = nanobot_test_config.get_provider(model)
+    if provider_config and provider_config.api_key:
+        return provider_config.api_key
+
+    pytest.skip(
+        f"No API key found for model {model}. Set NANOBOT_TEST_API_KEY or configure in nanobot.json"
+    )
+
+
+@pytest.fixture
+def live_model(nanobot_test_config: "Config") -> str:
+    """Get model for live tests from config or env var."""
+    model = os.environ.get("NANOBOT_TEST_MODEL")
+    if model:
+        return model
+    return nanobot_test_config.agents.defaults.model
 
 
 @pytest.fixture
@@ -180,6 +217,162 @@ async def send_and_wait():
         timeout: float = 60.0,
     ):
         from nanobot.bus.events import InboundMessage, OutboundMessage
+
+        await bus.publish_inbound(
+            InboundMessage(
+                channel=channel,
+                sender_id=sender_id,
+                chat_id=chat_id,
+                content=content,
+            )
+        )
+
+        response = await asyncio.wait_for(bus.consume_outbound(), timeout=timeout)
+        return response
+
+    return _send
+
+
+@pytest.fixture
+def deep_checkpointer(workspace: Path):
+    """Create a session checkpointer for DeepAgent tests."""
+    from nanobot_deep.langgraph.checkpointer import SessionCheckpointer
+
+    db_path = workspace.parent / "test_sessions.db"
+    checkpointer = SessionCheckpointer(db_path)
+    checkpointer.setup()
+    return checkpointer
+
+
+@pytest.fixture
+def deep_agent_config(live_api_key: str, live_model: str):
+    """Create DeepAgentsConfig for live tests."""
+    from nanobot_deep.config.schema import DeepAgentsConfig, DeepAgentsModelConfig
+
+    return DeepAgentsConfig(
+        model=DeepAgentsModelConfig(
+            name=live_model,
+            api_key=live_api_key,
+            max_tokens=4096,
+            temperature=0.1,
+        ),
+        recursion_limit=50,
+        debug=False,
+    )
+
+
+@pytest.fixture
+def mock_nanobot_config(workspace: Path, nanobot_test_config: "Config"):
+    """Create a nanobot config for DeepAgent tests with test workspace."""
+    config = nanobot_test_config.model_copy(deep=True)
+    config.agents.defaults.workspace = str(workspace)
+    return config
+
+
+@pytest.fixture
+async def live_deep_agent(
+    workspace: Path,
+    mock_nanobot_config,
+    deep_checkpointer,
+    deep_agent_config,
+):
+    """Create a DeepAgent instance for live testing."""
+    from nanobot_deep.agent.deep_agent import DeepAgent
+
+    agent = DeepAgent(
+        workspace=workspace,
+        config=mock_nanobot_config,
+        checkpointer=deep_checkpointer,
+        deepagents_config=deep_agent_config,
+    )
+
+    yield agent
+
+    await agent.close()
+
+
+@pytest.fixture
+async def live_deep_gateway(
+    workspace: Path,
+    mock_nanobot_config,
+    deep_checkpointer,
+    deep_agent_config,
+):
+    """Start DeepGateway with DeepAgent for live testing.
+
+    Yields dict with:
+        - bus: MessageBus for sending/receiving messages
+        - agent: DeepAgent instance
+        - gateway: DeepGateway instance
+        - consumer_task: Background task consuming from bus
+    """
+    from nanobot.bus.queue import MessageBus
+    from nanobot_deep.agent.deep_agent import DeepAgent
+    from nanobot_deep.gateway import DeepGateway
+
+    bus = MessageBus()
+
+    agent = DeepAgent(
+        workspace=workspace,
+        config=mock_nanobot_config,
+        checkpointer=deep_checkpointer,
+        deepagents_config=deep_agent_config,
+    )
+
+    async def consume_and_process():
+        """Simple consumer that processes messages."""
+        while True:
+            msg = None
+            try:
+                msg = await asyncio.wait_for(bus.consume_inbound(), timeout=1.0)
+                response = await agent.process(msg)
+                await bus.publish_outbound(response)
+            except asyncio.TimeoutError:
+                continue
+            except asyncio.CancelledError:
+                break
+            except Exception as e:
+                from nanobot.bus.events import OutboundMessage
+
+                if msg:
+                    await bus.publish_outbound(
+                        OutboundMessage(
+                            channel=msg.channel,
+                            chat_id=msg.chat_id,
+                            content=f"Error: {e}",
+                        )
+                    )
+
+    consumer_task = asyncio.create_task(consume_and_process())
+
+    yield {
+        "bus": bus,
+        "agent": agent,
+        "consumer_task": consumer_task,
+    }
+
+    consumer_task.cancel()
+    try:
+        await asyncio.wait_for(consumer_task, timeout=2.0)
+    except (asyncio.CancelledError, asyncio.TimeoutError):
+        pass
+
+    await agent.close()
+
+
+@pytest.fixture
+async def deep_send_and_wait():
+    """Helper to send message to DeepAgent and wait for response."""
+
+    async def _send(
+        bus: "MessageBus",
+        content: str,
+        channel: str = "test",
+        sender_id: str = "user1",
+        chat_id: str = "chat1",
+        timeout: float = 60.0,
+    ):
+        from nanobot.bus.events import InboundMessage
 
         await bus.publish_inbound(
             InboundMessage(

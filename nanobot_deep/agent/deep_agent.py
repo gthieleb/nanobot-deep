@@ -104,15 +104,24 @@ class DeepAgent:
         if not model_name:
             model_name = "anthropic:claude-sonnet-4-5"
 
+        logger.info(f"Initializing model: {model_name}")
+
         kwargs = {}
         if api_key:
             kwargs["api_key"] = api_key
         if api_base:
             kwargs["base_url"] = api_base
+            logger.debug(f"Using API base: {api_base}")
         kwargs["max_tokens"] = self.dg_config.model.max_tokens
         kwargs["temperature"] = self.dg_config.model.temperature
 
-        return init_chat_model(model_name, **kwargs)
+        try:
+            model = init_chat_model(model_name, **kwargs)
+            logger.info(f"Model {model_name} initialized successfully")
+            return model
+        except Exception as e:
+            logger.error(f"Failed to initialize model {model_name}: {e}")
+            raise
 
     def _init_backend(self) -> BackendProtocol:
         """Get or create the backend for file operations."""

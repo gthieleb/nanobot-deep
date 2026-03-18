@@ -6,18 +6,15 @@ creating a LangGraph-based agent with nanobot-specific tools and features.
 
 from __future__ import annotations
 
-import asyncio
 from collections.abc import Awaitable, Callable
 from contextlib import AsyncExitStack
 from pathlib import Path
 from typing import TYPE_CHECKING, Any
 
-from langchain_core.messages import HumanMessage
-from langchain_core.tools import StructuredTool
 from loguru import logger
 
-from nanobot_deep.config.schema import DeepAgentsConfig
 from nanobot_deep.config.loader import merge_with_nanobot_config
+from nanobot_deep.config.schema import DeepAgentsConfig
 from nanobot_deep.langgraph.bridge import (
     extract_reply_context,
     should_delegate_task,
@@ -36,6 +33,14 @@ try:
 except ImportError:
     DEEPAGENTS_AVAILABLE = False
     create_deep_agent = None
+
+try:
+    from langfuse.langchain import CallbackHandler as LangfuseCallbackHandler
+
+    LANGFUSE_AVAILABLE = True
+except ImportError:
+    LANGFUSE_AVAILABLE = False
+    LangfuseCallbackHandler = None
 
 
 class DeepAgent:
@@ -264,6 +269,48 @@ Skills are available at: {self.workspace}/skills/ (read SKILL.md files as needed
                 }
         return None
 
+    def _get_langfuse_handler(self) -> Any | None:
+        """Get Langfuse callback handler if configured and available.
+
+        Environment variables take precedence over config file values.
+
+        Returns:
+            Langfuse CallbackHandler or None if not configured/available
+        """
+        import os
+
+        if not LANGFUSE_AVAILABLE:
+            return None
+
+        langfuse_config = self.dg_config.langfuse
+        if not langfuse_config.enabled:
+            return None
+
+        public_key = os.environ.get("LANGFUSE_PUBLIC_KEY") or langfuse_config.public_key
+        secret_key = os.environ.get("LANGFUSE_SECRET_KEY") or langfuse_config.secret_key
+        host = os.environ.get("LANGFUSE_HOST") or langfuse_config.host
+
+        if not public_key or not secret_key:
+            logger.warning("Langfuse enabled but missing credentials (public_key/secret_key)")
+            return None
+
+        try:
+            handler = LangfuseCallbackHandler(
+                public_key=public_key,
+                secret_key=secret_key,
+                host=host,
+                environment=langfuse_config.environment,
+                session_id=langfuse_config.session_id,
+                user_id=langfuse_config.user_id,
+                tags=langfuse_config.tags or None,
+                metadata=langfuse_config.metadata or None,
+            )
+            logger.debug(f"Langfuse handler initialized for {host}")
+            return handler
+        except Exception as e:
+            logger.warning(f"Failed to initialize Langfuse handler: {e}")
+            return None
+
     async def process(
         self,
         msg: "InboundMessage",
@@ -295,11 +342,15 @@ Skills are available at: {self.workspace}/skills/ (read SKILL.md files as needed
             logger.debug("Processing reply-to message with context delegation")
 
         state = translate_inbound_to_state(msg, history, reply_context=reply_context)
-        config = {
+        config: dict[str, Any] = {
             "configurable": {
                 "thread_id": msg.session_key,
             },
         }
+
+        langfuse_handler = self._get_langfuse_handler()
+        if langfuse_handler:
+            config["callbacks"] = [langfuse_handler]
 
         try:
             if on_progress:

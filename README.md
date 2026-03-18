@@ -146,6 +146,58 @@ Create `~/.nanobot/deepagents.json`:
 }
 ```
 
+## Langfuse Observability
+
+nanobot-deep supports Langfuse for observability and tracing of agent execution.
+
+### Configuration
+
+Add to your `~/.nanobot/deepagents.json`:
+
+```json
+{
+  "langfuse": {
+    "enabled": true,
+    "public_key": "pk-lf-...",
+    "secret_key": "sk-lf-...",
+    "host": "http://localhost:3000",
+    "environment": "development"
+  }
+}
+```
+
+### Environment Variables
+
+Environment variables take precedence over config file:
+
+```bash
+export LANGFUSE_PUBLIC_KEY="pk-lf-..."
+export LANGFUSE_SECRET_KEY="sk-lf-..."
+export LANGFUSE_HOST="http://localhost:3000"
+```
+
+### Self-Hosted Langfuse
+
+Use the docker-compose setup from [litellm-setup](https://github.com/gthieleb/litellm-setup):
+
+```bash
+# Clone and start Langfuse stack
+git clone https://github.com/gthieleb/litellm-setup
+cd litellm-setup
+docker compose -f docker-compose.yml -f docker-compose.langfuse.yml up -d
+
+# Access Langfuse UI at http://localhost:3000
+```
+
+### OTEL Telemetry
+
+OpenTelemetry is supported via environment variables:
+
+```bash
+export OTEL_EXPORTER_OTLP_ENDPOINT="http://localhost:4317"
+export OTEL_SERVICE_NAME="nanobot-deep"
+```
+
 ## Dependencies
 
 - `nanobot-ai>=0.1.4.post4,<0.2.0` (from PyPI)

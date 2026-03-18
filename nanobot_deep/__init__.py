@@ -5,7 +5,7 @@ __version__ = "0.1.0"
 from nanobot_deep.agent import DeepAgent, is_deepagents_available
 from nanobot_deep.langgraph import (
     LangGraphBridge,
-    SessionCheckpointer,
+    get_session_history,
     translate_inbound_to_state,
     translate_result_to_outbound,
     extract_reply_context,
@@ -22,7 +22,7 @@ __all__ = [
     "DeepAgent",
     "is_deepagents_available",
     "LangGraphBridge",
-    "SessionCheckpointer",
+    "get_session_history",
     "translate_inbound_to_state",
     "translate_result_to_outbound",
     "extract_reply_context",

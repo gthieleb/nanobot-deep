@@ -155,6 +155,120 @@ Create `~/.nanobot/deepagents.json`:
 - `langchain-mcp-adapters>=0.1.0`
 - `aiosqlite>=0.20.0`
 
+## Developer Guide
+
+### Conventional Commits
+
+This project uses [Conventional Commits](https://www.conventionalcommits.org/) for semantic versioning and automated releases.
+
+**Commit Format**:
+```
+<type>[optional scope]: <description>
+
+[optional body]
+
+[optional footer(s)]
+```
+
+**Types**:
+- `feat:` - New feature (triggers minor version bump)
+- `fix:` - Bug fix (triggers patch version bump)
+- `docs:` - Documentation only changes
+- `style:` - Code style changes (formatting, etc.)
+- `refactor:` - Code refactoring (no feature/fix)
+- `perf:` - Performance improvements
+- `test:` - Adding or updating tests
+- `chore:` - Build process, tooling, dependencies
+- `ci:` - CI/CD configuration changes
+
+**Breaking Changes**:
+
+Add `BREAKING CHANGE:` in footer or `!` after type to trigger major version bump:
+```
+feat!: remove support for Python 3.11
+
+BREAKING CHANGE: Minimum Python version is now 3.12
+```
+
+**Examples**:
+```bash
+# Feature (minor bump: 0.1.0 → 0.2.0)
+git commit -m "feat: add A2A agent-to-agent protocol support"
+
+# Fix (patch bump: 0.1.0 → 0.1.1)
+git commit -m "fix: resolve AsyncSqliteSaver compatibility issue"
+
+# Multiple changes
+git commit -m "feat(memory): add conversation context middleware
+
+- Integrate deepagents memory middleware
+- Configure memory storage in deepagents.json
+- Add E2E tests for context retention"
+```
+
+**CI/CD Integration**:
+- Semantic versioning automatically generates version numbers from commits
+- GitHub releases include auto-generated changelogs
+- Docker images tagged with semantic versions
+
+### Development Workflow
+
+1. **Create feature branch**:
+   ```bash
+   git checkout -b feature/your-feature-name
+   ```
+
+2. **Make changes and commit with conventional format**:
+   ```bash
+   git commit -m "feat: add your feature"
+   ```
+
+3. **Push and create PR**:
+   ```bash
+   git push -u origin feature/your-feature-name
+   gh pr create --base main
+   ```
+
+4. **CI pipeline runs automatically**:
+   - Tests with coverage (80% minimum)
+   - Linting (ruff check + format)
+   - Docker build
+   - Auto-merge if all checks pass
+
+5. **Release process** (automatic on main):
+   - Semantic version calculated from commits
+   - Docker image published to ghcr.io
+   - GitHub release created with changelog
+
+### Running Tests
+
+```bash
+# Install dev dependencies
+uv pip install -e ".[dev]"
+
+# Run all tests
+pytest tests/ -v
+
+# Run with coverage
+pytest tests/ --cov=nanobot_deep --cov-report=term
+
+# Run specific test file
+pytest tests/test_deepagents_config.py -v
+```
+
+### Code Quality
+
+```bash
+# Format code
+ruff format nanobot_deep/
+
+# Check linting
+ruff check nanobot_deep/
+
+# Fix auto-fixable issues
+ruff check --fix nanobot_deep/
+```
+
 ## License
 
 MIT

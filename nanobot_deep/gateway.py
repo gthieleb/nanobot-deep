@@ -20,13 +20,13 @@ from typing import TYPE_CHECKING
 from loguru import logger
 
 if TYPE_CHECKING:
+    from langgraph.checkpoint.sqlite.aio import AsyncSqliteSaver
     from nanobot.bus.events import InboundMessage
     from nanobot.bus.queue import MessageBus
     from nanobot.channels.manager import ChannelManager
     from nanobot.config.schema import Config
 
     from nanobot_deep.agent.deep_agent import DeepAgent
-    from nanobot_deep.langgraph.checkpointer import SessionCheckpointer
 
 
 class DeepGateway:
@@ -63,26 +63,29 @@ class DeepGateway:
         self.bus: "MessageBus" = MessageBus()
         self.channels: "ChannelManager" = ChannelManager(config, self.bus)
         self.agent: "DeepAgent | None" = None
-        self.checkpointer: "SessionCheckpointer | None" = None
+        self.checkpointer: "AsyncSqliteSaver | None" = None
 
         self._running = False
         self._shutdown_event = asyncio.Event()
 
-    def _setup_checkpointer(self) -> "SessionCheckpointer":
+    async def _setup_checkpointer(self) -> "AsyncSqliteSaver":
         """Create and setup the session checkpointer."""
-        from nanobot_deep.langgraph.checkpointer import SessionCheckpointer
+        import aiosqlite
+
+        from langgraph.checkpoint.sqlite.aio import AsyncSqliteSaver
 
         db_path = self.workspace.parent / "sessions.db"
-        checkpointer = SessionCheckpointer(db_path, migrate_from_json=True)
-        checkpointer.setup()
+        conn = await aiosqlite.connect(str(db_path))
+        checkpointer = AsyncSqliteSaver(conn)
+        await checkpointer.setup()
         return checkpointer
 
-    def _setup_agent(self) -> "DeepAgent":
+    async def _setup_agent(self) -> "DeepAgent":
         """Create the DeepAgent instance."""
         from nanobot_deep.agent.deep_agent import DeepAgent
         from nanobot_deep.config.loader import load_deepagents_config
 
-        self.checkpointer = self._setup_checkpointer()
+        self.checkpointer = await self._setup_checkpointer()
         deepagents_config = load_deepagents_config()
 
         agent = DeepAgent(
@@ -96,12 +99,28 @@ class DeepGateway:
     async def _process_inbound(self, msg: "InboundMessage") -> None:
         """Process an inbound message through DeepAgent."""
         if self.agent is None:
-            logger.error("Agent not initialized")
+            logger.error("Agent not initialized - cannot process message")
+            from nanobot.bus.events import OutboundMessage
+
+            error_response = OutboundMessage(
+                channel=msg.channel,
+                chat_id=msg.chat_id,
+                content="Sorry, the agent is not initialized. Please check the logs.",
+                metadata=msg.metadata or {},
+            )
+            await self.bus.publish_outbound(error_response)
             return
+
+        preview = msg.content[:80] + "..." if len(msg.content) > 80 else msg.content
+        logger.info(f"Processing message from {msg.channel}:{msg.sender_id}: {preview}")
 
         try:
             response = await self.agent.process(msg)
+            logger.debug(
+                f"Agent processed message, publishing response to {msg.channel}:{msg.chat_id}"
+            )
             await self.bus.publish_outbound(response)
+            logger.debug(f"Response published successfully")
         except Exception as e:
             logger.exception(f"Error processing message: {e}")
             from nanobot.bus.events import OutboundMessage
@@ -116,19 +135,23 @@ class DeepGateway:
 
     async def _consume_inbound_loop(self) -> None:
         """Background task that consumes inbound messages."""
+        logger.info("Inbound message consumer started")
         while self._running:
             try:
                 msg = await asyncio.wait_for(
                     self.bus.consume_inbound(),
                     timeout=1.0,
                 )
+                logger.debug(f"Received message from {msg.channel}:{msg.sender_id}")
                 asyncio.create_task(self._process_inbound(msg))
             except asyncio.TimeoutError:
                 continue
             except asyncio.CancelledError:
+                logger.info("Inbound consumer cancelled")
                 break
             except Exception as e:
                 logger.exception(f"Error in inbound loop: {e}")
+        logger.info("Inbound message consumer stopped")
 
     async def run(self) -> None:
         """Start the gateway."""
@@ -138,7 +161,13 @@ class DeepGateway:
 
         sync_workspace_templates(self.workspace)
 
-        self.agent = self._setup_agent()
+        try:
+            self.agent = await self._setup_agent()
+            logger.info("DeepAgent initialized successfully")
+        except Exception as e:
+            logger.exception(f"Failed to initialize DeepAgent: {e}")
+            self._shutdown_event.set()
+            return
 
         if self.channels.enabled_channels:
             logger.info(f"Channels enabled: {', '.join(self.channels.enabled_channels)}")
@@ -159,6 +188,9 @@ class DeepGateway:
         if hasattr(signal, "SIGHUP"):
             loop.add_signal_handler(signal.SIGHUP, handle_signal)
 
+        inbound_task: asyncio.Task | None = None
+        channels_task: asyncio.Task | None = None
+
         try:
             inbound_task = asyncio.create_task(self._consume_inbound_loop())
             channels_task = asyncio.create_task(self.channels.start_all())
@@ -168,12 +200,14 @@ class DeepGateway:
         finally:
             self._running = False
 
-            inbound_task.cancel()
-            channels_task.cancel()
+            if inbound_task:
+                inbound_task.cancel()
+            if channels_task:
+                channels_task.cancel()
 
             await asyncio.gather(
-                inbound_task,
-                channels_task,
+                inbound_task or asyncio.sleep(0),
+                channels_task or asyncio.sleep(0),
                 return_exceptions=True,
             )
 

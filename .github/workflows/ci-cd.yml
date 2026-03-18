@@ -100,10 +100,10 @@ jobs:
           tag_prefix: "v"
           major_pattern: "(MAJOR)"
           minor_pattern: "feat:"
-          patch_pattern: "fix:"
           version_format: "${major}.${minor}.${patch}"
           search_commit_body: true
           bump_each_commit: true
+          bump_each_commit_patch_pattern: "fix:"
           user_format_type: "csv"
 
       - name: Check if prerelease
@@ -142,14 +142,25 @@ jobs:
         id: repo
         run: echo "name=$(echo ${{ github.repository }} | tr '[:upper:]' '[:lower:]')" >> $GITHUB_OUTPUT
 
+      - name: Generate Docker tags
+        id: docker_tags
+        run: |
+          VERSION="${{ needs.versioning.outputs.version }}"
+          REPO="ghcr.io/${{ steps.repo.outputs.name }}"
+          
+          if [[ "${{ github.ref }}" == "refs/heads/main" ]]; then
+            echo "tags=${REPO}:${VERSION},${REPO}:latest" >> $GITHUB_OUTPUT
+          else
+            BRANCH=$(echo "${{ github.head_ref || github.ref_name }}" | sed 's/[^a-zA-Z0-9._-]/-/g')
+            echo "tags=${REPO}:${VERSION},${REPO}:${BRANCH}" >> $GITHUB_OUTPUT
+          fi
+
       - name: Build and push
         uses: docker/build-push-action@v5
         with:
           context: .
           push: true
-          tags: |
-            ghcr.io/${{ steps.repo.outputs.name }}:${{ needs.versioning.outputs.version }}
-            ghcr.io/${{ steps.repo.outputs.name }}:${{ github.ref == 'refs/heads/main' && 'latest' || github.ref_name }}
+          tags: ${{ steps.docker_tags.outputs.tags }}
           labels: |
             org.opencontainers.image.source=${{ github.repositoryUrl }}
             org.opencontainers.image.version=${{ needs.versioning.outputs.version }}
@@ -206,7 +217,9 @@ jobs:
     if: github.event_name == 'pull_request'
     runs-on: ubuntu-latest
     steps:
+      - uses: actions/checkout@v4
+      
       - name: Enable auto-merge
-        run: gh pr merge --auto --squash "${{ github.event.pull_request.number }}"
+        run: gh pr merge --auto --squash "${{ github.event.pull_request.number }}" || echo "Auto-merge not available"
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}

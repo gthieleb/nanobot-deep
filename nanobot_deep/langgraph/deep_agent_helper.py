@@ -26,7 +26,7 @@ async def run_ralph_mode(
         task: Declarative description of what to build
         max_iterations: Maximum iterations (0 = unlimited)
         workspace: Working directory
-        model: Model specification (e.g., 'anthropic:claude-sonnet-4-5')
+        model: Model specification (e.g., 'anthropic/claude-sonnet-4-5')
         sandbox: Sandbox provider ('none', 'modal', 'daytona', 'runloop')
         stream: Whether to stream output
     """
@@ -43,7 +43,7 @@ async def run_ralph_mode(
 
     backend = _create_backend(sandbox, workspace)
     agent = create_deep_agent(
-        model=model or "anthropic:claude-sonnet-4-5",
+        model=model or "anthropic/claude-sonnet-4-5",
         backend=backend,
     )
 

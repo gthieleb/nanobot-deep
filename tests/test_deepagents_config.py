@@ -166,7 +166,7 @@ class TestDeepAgentsSchema:
                 DeepAgentsSubagentConfig(
                     name="researcher",
                     description="Researches topics",
-                    model="anthropic:claude-sonnet-4-5",
+                    model="anthropic/claude-sonnet-4-5",
                 )
             ]
         )
@@ -516,7 +516,7 @@ class TestConfigPrecedence:
                         {
                             "name": "researcher",
                             "description": "Research assistant",
-                            "model": "anthropic:claude-sonnet-4-5",
+                            "model": "anthropic/claude-sonnet-4-5",
                         }
                     ]
                 }

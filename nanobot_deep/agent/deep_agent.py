@@ -86,7 +86,7 @@ class DeepAgent:
 
     def _init_model(self) -> Any:
         """Initialize model with config from nanobot and deepagents."""
-        from langchain.chat_models import init_chat_model
+        from langchain_litellm import ChatLiteLLM
 
         model_name = self.dg_config.model.name
         api_key = self.dg_config.model.api_key
@@ -102,7 +102,7 @@ class DeepAgent:
                     api_base = provider_config.api_base
 
         if not model_name:
-            model_name = "anthropic:claude-sonnet-4-5"
+            model_name = "anthropic/claude-sonnet-4-5"
 
         logger.info(f"Initializing model: {model_name}")
 
@@ -116,7 +116,7 @@ class DeepAgent:
         kwargs["temperature"] = self.dg_config.model.temperature
 
         try:
-            model = init_chat_model(model_name, **kwargs)
+            model = ChatLiteLLM(model=model_name, **kwargs)
             logger.info(f"Model {model_name} initialized successfully")
             return model
         except Exception as e:

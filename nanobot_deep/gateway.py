@@ -20,13 +20,13 @@ from typing import TYPE_CHECKING
 from loguru import logger
 
 if TYPE_CHECKING:
+    from langgraph.checkpoint.sqlite.aio import AsyncSqliteSaver
     from nanobot.bus.events import InboundMessage
     from nanobot.bus.queue import MessageBus
     from nanobot.channels.manager import ChannelManager
     from nanobot.config.schema import Config
 
     from nanobot_deep.agent.deep_agent import DeepAgent
-    from nanobot_deep.langgraph.checkpointer import SessionCheckpointer
 
 
 class DeepGateway:
@@ -63,26 +63,29 @@ class DeepGateway:
         self.bus: "MessageBus" = MessageBus()
         self.channels: "ChannelManager" = ChannelManager(config, self.bus)
         self.agent: "DeepAgent | None" = None
-        self.checkpointer: "SessionCheckpointer | None" = None
+        self.checkpointer: "AsyncSqliteSaver | None" = None
 
         self._running = False
         self._shutdown_event = asyncio.Event()
 
-    def _setup_checkpointer(self) -> "SessionCheckpointer":
+    async def _setup_checkpointer(self) -> "AsyncSqliteSaver":
         """Create and setup the session checkpointer."""
-        from nanobot_deep.langgraph.checkpointer import SessionCheckpointer
+        import aiosqlite
+
+        from langgraph.checkpoint.sqlite.aio import AsyncSqliteSaver
 
         db_path = self.workspace.parent / "sessions.db"
-        checkpointer = SessionCheckpointer(db_path, migrate_from_json=False)
-        checkpointer.setup()
+        conn = await aiosqlite.connect(str(db_path))
+        checkpointer = AsyncSqliteSaver(conn)
+        await checkpointer.setup()
         return checkpointer
 
-    def _setup_agent(self) -> "DeepAgent":
+    async def _setup_agent(self) -> "DeepAgent":
         """Create the DeepAgent instance."""
         from nanobot_deep.agent.deep_agent import DeepAgent
         from nanobot_deep.config.loader import load_deepagents_config
 
-        self.checkpointer = self._setup_checkpointer()
+        self.checkpointer = await self._setup_checkpointer()
         deepagents_config = load_deepagents_config()
 
         agent = DeepAgent(
@@ -159,7 +162,7 @@ class DeepGateway:
         sync_workspace_templates(self.workspace)
 
         try:
-            self.agent = self._setup_agent()
+            self.agent = await self._setup_agent()
             logger.info("DeepAgent initialized successfully")
         except Exception as e:
             logger.exception(f"Failed to initialize DeepAgent: {e}")

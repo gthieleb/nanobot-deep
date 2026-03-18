@@ -70,3 +70,137 @@ The model is configured in `~/.nanobot/config.json`:
 - No comments unless explicitly requested
 - Follow existing patterns in the codebase
 - Run lint/typecheck after changes if available
+
+## Conventional Commits
+
+When working on nanobot-deep, **always** use Conventional Commits format for all commits.
+
+### Quick Reference
+
+```bash
+# Features (minor version bump)
+feat: add streaming support to gateway
+feat(telegram): implement inline approval buttons
+feat(a2a): add agent-to-agent protocol integration
+
+# Fixes (patch version bump)
+fix: resolve model initialization error
+fix(checkpointer): use AsyncSqliteSaver for async compatibility
+fix(gateway): handle missing session history gracefully
+
+# Documentation
+docs: update README with A2A integration guide
+docs(agents): document multi-agent workflows
+
+# Tests
+test: add unit tests for memory middleware
+test(e2e): verify streaming flow in Telegram
+
+# Chore
+chore: update dependencies
+chore(ci): configure GitHub Actions workflow
+chore(docker): optimize multi-stage build
+
+# Breaking changes (major version bump)
+feat!: migrate to AsyncSqliteSaver
+
+BREAKING CHANGE: SessionCheckpointer removed, use AsyncSqliteSaver directly
+```
+
+### Why Conventional Commits?
+
+1. **Automated Versioning**: Semantic versions generated automatically
+   - `feat:` → minor bump (0.1.0 → 0.2.0)
+   - `fix:` → patch bump (0.1.0 → 0.1.1)
+   - `feat!:` or `BREAKING CHANGE:` → major bump (0.1.0 → 1.0.0)
+
+2. **Clear History**: Easy to understand what changed
+   ```bash
+   git log --oneline
+   # a1b2c3d feat(memory): add conversation context middleware
+   # d4e5f6g fix(gateway): resolve AsyncSqliteSaver compatibility
+   # g7h8i9j docs: update README with conventional commits guide
+   ```
+
+3. **Automated Changelogs**: Release notes generated from commits
+   - Features grouped together
+   - Fixes grouped together
+   - Breaking changes highlighted
+
+4. **Team Communication**: Clear intent in commit messages
+   - Instantly see if commit adds feature or fixes bug
+   - Scope indicates which component changed
+   - Body provides detailed context
+
+### Enforcement
+
+The CI/CD pipeline uses these commits for:
+- **Version calculation**: `paulhatch/semantic-version` action
+- **Changelog generation**: Grouped by type
+- **Docker tags**: Images tagged with semantic versions
+- **GitHub releases**: Auto-created with version tags
+
+### Validation
+
+Before pushing, validate your commit message:
+```bash
+# Check last commit message format
+git log -1 --pretty=%B | grep -E '^(feat|fix|docs|style|refactor|perf|test|chore|ci)(\(.+\))?: .+'
+
+# If it doesn't match, amend the commit
+git commit --amend -m "feat: correct commit message"
+```
+
+### Multi-Agent Workflows
+
+When spawning multiple agents or working across features:
+
+1. **Use consistent scopes**:
+   ```bash
+   feat(memory): add middleware
+   feat(skills): add frontmatter support
+   feat(mcp): integrate langchain-mcp-adapters
+   ```
+
+2. **Reference related commits**:
+   ```bash
+   feat(a2a): add client implementation
+   
+   Related to feat(a2a): add server implementation
+   Part of A2A integration (Phase 1, Ticket #5)
+   ```
+
+3. **Link to issues/tickets**:
+   ```bash
+   fix(gateway): resolve startup error
+   
+   Fixes startup error with AsyncSqliteSaver initialization.
+   Closes #0 (Ticket #0: Commit & Merge + CI/CD Setup)
+   ```
+
+### Common Scopes
+
+Use these standard scopes for consistency:
+
+| Scope | Component |
+|-------|-----------|
+| `memory` | Memory middleware |
+| `skills` | Skills middleware |
+| `mcp` | MCP integration |
+| `a2a` | Agent-to-agent protocol |
+| `streaming` | Streaming support |
+| `docker` | Docker/containerization |
+| `gateway` | Gateway/message handling |
+| `agent` | DeepAgent implementation |
+| `checkpointer` | Session checkpointing |
+| `config` | Configuration schemas |
+| `ci` | CI/CD workflows |
+| `test` | Testing infrastructure |
+
+### Full Documentation
+
+See `README.md` Developer Guide section for complete documentation on:
+- Commit format specification
+- Breaking change syntax
+- Examples for each commit type
+- CI/CD integration details

@@ -71,11 +71,13 @@
 | #6 | Streaming Support | ⏸️ Pending | `feature/streaming-support` | #5 | [009](tickets/009-streaming-support.md) |
 | #7 | Backends & Sandboxes | ⏸️ Pending | `feature/backends-sandboxes` | #6 | [010](tickets/010-backends-sandboxes.md) |
 | #8 | Human-in-the-Loop | ⏸️ Pending | `feature/human-in-the-loop` | #7 | [011](tickets/011-human-in-the-loop.md) |
+| #19 | Lightweight Gateway | ⏸️ Pending | `refactor/lightweight-gateway` | #8 | [019](tickets/019-lightweight-gateway.md) |
 
 **Key Features**:
 - Progressive message streaming (highest UX impact)
 - Backend configuration and sandbox support
 - Tool approval with Telegram/Slack buttons
+- Gateway refactoring for maintainability (blocks Phase 3 gateway features)
 
 ---
 
@@ -88,10 +90,15 @@
 
 | Ticket | Name | Status | Branch | Dependencies | Details |
 |--------|------|--------|--------|--------------|---------|
-| #9 | Todo-List Frontend | ⏸️ Pending | `feature/todo-frontend` | #8 | [012](tickets/012-todo-frontend.md) |
-| #10 | Media Processing | ⏸️ Pending | `feature/media-processing` | #8 | [013](tickets/013-media-processing.md) |
-| #11 | README Documentation | ⏸️ Pending | `docs/comprehensive-readme` | #8 | [014](tickets/014-readme-documentation.md) |
-| #12 | Unit Tests | ⏸️ Pending | `tests/agent-subagent-config` | #8 | [015](tickets/015-unit-tests.md) |
+| #9 | Todo-List Frontend | ⏸️ Pending | `feature/todo-frontend` | #19 | [012](tickets/012-todo-frontend.md) |
+| #10 | Media Processing | ⏸️ Pending | `feature/media-processing` | #19 | [013](tickets/013-media-processing.md) |
+| #11 | README Documentation | ⏸️ Pending | `docs/comprehensive-readme` | #19 | [014](tickets/014-readme-documentation.md) |
+| #12 | Unit Tests | ⏸️ Pending | `tests/agent-subagent-config` | #19 | [015](tickets/015-unit-tests.md) |
+| #20 | Chat vs Agent Mode | ⏸️ Pending | `feature/chat-agent-mode` | #19 | [020](tickets/020-chat-agent-mode.md) |
+| #21 | Heartbeat Mode | ⏸️ Pending | `feature/heartbeat-mode` | #19 | [021](tickets/021-heartbeat-mode.md) |
+| #22 | Cronjob Support | ⏸️ Pending | `feature/cronjob-support` | #19 | [022](tickets/022-cronjob-support.md) |
+| #23 | Speech-to-Text | ⏸️ Pending | `feature/speech-to-text` | #19 | [023](tickets/023-speech-to-text.md) |
+| #24 | Text-to-Speech | ⏸️ Pending | `feature/text-to-speech` | #19 | [024](tickets/024-text-to-speech.md) |
 
 **Note**: These tickets can be worked on in parallel by spawning multiple agents.
 
@@ -100,6 +107,9 @@
 - Full media type support
 - Comprehensive documentation
 - Test coverage improvements
+- Chat vs Agent mode toggle
+- Heartbeat and cronjob scheduling
+- Voice I/O (STT/TTS) with German support
 
 ---
 

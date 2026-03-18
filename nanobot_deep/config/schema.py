@@ -89,6 +89,26 @@ class DeepAgentsCheckpointerConfig(BaseConfig):
     path: str = "~/.nanobot/sessions.db"
 
 
+class DeepAgentsMemorySourceConfig(BaseConfig):
+    """Memory source configuration for conversation context.
+
+    Memory files (AGENTS.md format) are loaded at agent startup and
+    injected into the system prompt for context retention.
+    """
+
+    type: Literal["conversation", "knowledge"] = "conversation"
+    path: str
+    max_tokens: int = Field(default=4000, ge=100, le=16000)
+    enabled: bool = True
+
+    def get_expanded_path(self, workspace: Path | None = None) -> str:
+        """Get expanded path with ~ resolution."""
+        expanded = Path(self.path).expanduser()
+        if not expanded.is_absolute() and workspace:
+            expanded = workspace / self.path
+        return str(expanded)
+
+
 class DeepAgentsSummarizationConfig(BaseConfig):
     """Summarization middleware configuration."""
 
@@ -138,7 +158,7 @@ class DeepAgentsConfig(BaseConfig):
     checkpointer: DeepAgentsCheckpointerConfig = Field(default_factory=DeepAgentsCheckpointerConfig)
 
     skills: list[str] = Field(default_factory=lambda: ["~/.nanobot/workspace/skills"])
-    memory: list[str] = Field(default_factory=list)
+    memory: list[DeepAgentsMemorySourceConfig] = Field(default_factory=list)
 
     subagents: list[DeepAgentsSubagentConfig] = Field(default_factory=list)
 
@@ -163,13 +183,11 @@ class DeepAgentsConfig(BaseConfig):
         return paths
 
     def get_memory_paths(self, workspace: Path | None = None) -> list[str]:
-        """Get expanded memory paths."""
+        """Get expanded memory paths from enabled memory sources."""
         paths = []
-        for mem_path in self.memory:
-            expanded = Path(mem_path).expanduser()
-            if not expanded.is_absolute() and workspace:
-                expanded = workspace / mem_path
-            paths.append(str(expanded))
+        for mem_source in self.memory:
+            if mem_source.enabled:
+                paths.append(mem_source.get_expanded_path(workspace))
         return paths
 
     def get_checkpointer_path(self) -> Path:

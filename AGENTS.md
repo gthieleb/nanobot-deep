@@ -204,3 +204,39 @@ See `README.md` Developer Guide section for complete documentation on:
 - Breaking change syntax
 - Examples for each commit type
 - CI/CD integration details
+
+## Task Delegation
+
+**Always spawn tasks to subagents** for complex, multi-step, or parallel work. Prefer the `@ai-*` agents available in the opencode-skills repository.
+
+### Available Agents
+
+| Agent | Use For |
+|-------|---------|
+| `@ai-developer` | Development: LangGraph, DeepAgents, nanobot, LangChain |
+| `@ai-tester` | Testing: pytest, mocking, E2E, coverage |
+| `@ai-product-owner` | Product: Issue/PR tracking, curated tickets |
+
+### When to Spawn
+
+- **Complex tasks**: Multi-file changes, new features
+- **Parallel work**: Independent tasks that can run simultaneously
+- **Specialized work**: Testing, documentation, research
+- **Phase 3+ work**: All Phase 3 tickets can be spawned in parallel
+
+### Spawning Pattern
+
+```bash
+# Use Task tool with appropriate agent type
+Task(description="Add memory tests", prompt="...", subagent_type="general")
+
+# For testing tasks, use ai-tester
+Task(description="Write E2E tests", prompt="...", subagent_type="general")
+```
+
+### Agent Location
+
+Agents are defined in the [opencode-skills](https://github.com/gthieleb/opencode-skills) repository:
+- `nanobot-deep/agents/ai-developer.md`
+- `nanobot-deep/agents/ai-tester.md`
+- `nanobot-deep/agents/ai-product-owner.md`

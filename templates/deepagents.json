@@ -1,8 +1,4 @@
 {
-  "$schema": "https://json-schema.org/draft/2020-12/schema",
-  "title": "DeepAgents Configuration",
-  "description": "DeepAgents-specific settings for LangGraph backend. LLM/provider settings are in config.json.",
-  
   "model": {
     "name": null,
     "api_key": null,
@@ -29,22 +25,24 @@
   },
   
   "skills": ["~/.nanobot/workspace/skills"],
-  "memory": [],
+  
+  "memory": [
+    {
+      "type": "conversation",
+      "path": "~/.nanobot/workspace/memory/MEMORY.md",
+      "max_tokens": 4000,
+      "enabled": true
+    }
+  ],
   
   "subagents": [
     {
       "name": "reply-handler",
-      "description": "Handles replies to messages with full context. Use when the user is replying to a specific message and needs context-aware responses.",
-      "system_prompt": "You are a reply assistant that handles responses to specific messages. You have access to the original message context. Provide relevant, contextual responses that acknowledge and build upon the message being replied to. Be concise and helpful.",
+      "description": "Handles replies to messages with full context.",
+      "system_prompt": "You are a reply assistant that handles responses to specific messages. Provide relevant, contextual responses. Be concise.",
       "model": null
     }
   ],
-  
-  "task_routing": {
-    "auto_delegate_reply_to": true,
-    "control_commands": ["/help", "/new", "/stop", "/tasks", "/start"],
-    "delegate_threshold_tokens": 1000
-  },
   
   "interrupt_on": {
     "edit_file": false,
@@ -67,5 +65,19 @@
     "enable_memory": true,
     "enable_subagents": true,
     "enable_filesystem": true
+  },
+  
+  "task_routing": {
+    "auto_delegate_reply_to": true,
+    "control_commands": ["/help", "/new", "/stop", "/tasks", "/start"],
+    "delegate_threshold_tokens": 1000
+  },
+  
+  "langfuse": {
+    "enabled": false,
+    "public_key": null,
+    "secret_key": null,
+    "host": "http://localhost:3000",
+    "environment": "development"
   }
 }

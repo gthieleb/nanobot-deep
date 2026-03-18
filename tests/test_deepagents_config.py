@@ -105,7 +105,9 @@ class TestDeepAgentsSchema:
 
     def test_memory_path_expansion(self):
         """Test memory paths are expanded correctly."""
-        config = DeepAgentsConfig(memory=["~/AGENTS.md"])
+        from nanobot_deep.config.schema import DeepAgentsMemorySourceConfig
+
+        config = DeepAgentsConfig(memory=[DeepAgentsMemorySourceConfig(path="~/AGENTS.md")])
 
         paths = config.get_memory_paths()
 
@@ -122,8 +124,11 @@ class TestDeepAgentsSchema:
 
     def test_checkpointer_types(self):
         """Test valid checkpointer types."""
-        for ctype in ["sqlite", "memory", "none"]:
-            config = DeepAgentsConfig(checkpointer=DeepAgentsCheckpointerConfig(type=ctype))
+        from typing import Literal
+
+        for ctype in ("sqlite", "memory", "none"):
+            typed_ctype: Literal["sqlite", "memory", "none"] = ctype  # type: ignore[assignment]
+            config = DeepAgentsConfig(checkpointer=DeepAgentsCheckpointerConfig(type=typed_ctype))
             assert config.checkpointer.type == ctype
 
     def test_backend_config_defaults(self):

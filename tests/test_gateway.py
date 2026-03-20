@@ -26,7 +26,8 @@ class TestDeepGateway:
             assert gateway.checkpointer is None
             assert gateway._running is False
 
-    def test_gateway_setup_checkpointer(self, tmp_path):
+    @pytest.mark.asyncio
+    async def test_gateway_setup_checkpointer(self, tmp_path):
         """Test checkpointer setup."""
         from nanobot_deep.gateway import DeepGateway
 
@@ -35,16 +36,10 @@ class TestDeepGateway:
         with patch("nanobot.channels.manager.ChannelManager"):
             gateway = DeepGateway(config, tmp_path)
 
-            with patch(
-                "nanobot_deep.langgraph.checkpointer.SessionCheckpointer"
-            ) as mock_checkpointer_cls:
-                mock_checkpointer = MagicMock()
-                mock_checkpointer_cls.return_value = mock_checkpointer
+            checkpointer = await gateway._setup_checkpointer()
 
-                checkpointer = gateway._setup_checkpointer()
-
-                assert checkpointer is not None
-                mock_checkpointer_cls.assert_called_once()
+            assert checkpointer is not None
+            await checkpointer.conn.close()
 
     def test_gateway_stop(self, tmp_path):
         """Test gateway stop signal."""

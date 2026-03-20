@@ -7,6 +7,15 @@ Usage:
 
     # Option 2: Override with env vars (takes precedence)
     NANOBOT_TEST_MODEL=gpt-5-mini pytest tests/e2e/ -m live -v
+
+    # Telegram E2E tests (require real Telegram user account):
+    # 1. Get API credentials: https://my.telegram.org/apps
+    # 2. Set environment variables:
+    #    export TELEGRAM_API_ID=12345
+    #    export TELEGRAM_API_HASH=abc123...
+    #    export TEST_USER_PHONE=+49...
+    #    export TELEGRAM_BOT_USERNAME=@your_bot
+    # 3. Run tests: pytest tests/e2e/ -m live -v
 """
 
 from __future__ import annotations
@@ -385,5 +394,132 @@ async def deep_send_and_wait():
 
         response = await asyncio.wait_for(bus.consume_outbound(), timeout=timeout)
         return response
+
+    return _send
+
+
+@pytest.fixture
+def telegram_api_credentials():
+    """Load Telegram API credentials for E2E testing.
+
+    Requires these environment variables:
+    - TELEGRAM_API_ID: From https://my.telegram.org/apps
+    - TELEGRAM_API_HASH: From https://my.telegram.org/apps
+    - TEST_USER_PHONE: Phone number for test user account
+    - TELEGRAM_BOT_USERNAME: Bot username to test (e.g., @my_bot)
+
+    Returns dict with credentials or skips test if not set.
+    """
+    api_id = os.environ.get("TELEGRAM_API_ID")
+    api_hash = os.environ.get("TELEGRAM_API_HASH")
+    phone = os.environ.get("TEST_USER_PHONE")
+    bot_username = os.environ.get("TELEGRAM_BOT_USERNAME")
+
+    missing = [
+        var
+        for var, val in [
+            ("TELEGRAM_API_ID", api_id),
+            ("TELEGRAM_API_HASH", api_hash),
+            ("TEST_USER_PHONE", phone),
+            ("TELEGRAM_BOT_USERNAME", bot_username),
+        ]
+        if not val
+    ]
+
+    if missing:
+        pytest.skip(
+            f"Telegram E2E tests require: {', '.join(missing)}\n"
+            "Get credentials from https://my.telegram.org/apps\n"
+            "Example:\n"
+            "  export TELEGRAM_API_ID=12345\n"
+            "  export TELEGRAM_API_HASH=abc123...\n"
+            "  export TEST_USER_PHONE=+49...\n"
+            "  export TELEGRAM_BOT_USERNAME=@your_bot"
+        )
+
+    return {
+        "api_id": int(api_id),
+        "api_hash": api_hash,
+        "phone": phone,
+        "bot_username": bot_username,
+    }
+
+
+@pytest.fixture
+async def telegram_user_client(telegram_api_credentials):
+    """Create and connect a Telethon client for testing.
+
+    Yields a connected TelegramClient instance.
+    Client is disconnected after test.
+    """
+    from telethon import TelegramClient
+
+    api_id = telegram_api_credentials["api_id"]
+    api_hash = telegram_api_credentials["api_hash"]
+    phone = telegram_api_credentials["phone"]
+
+    client = TelegramClient("test_session_user", api_id, api_hash)
+
+    try:
+        await client.connect()
+
+        if not await client.is_user_authorized():
+            await client.send_code_request(phone)
+            await client.sign_in(phone, input(f"Enter code for {phone}: "))
+
+        yield client
+
+    finally:
+        await client.disconnect()
+
+
+@pytest.fixture
+async def telegram_bot_entity(telegram_user_client, telegram_api_credentials):
+    """Get the bot entity to test against.
+
+    Resolves the bot username and yields the bot entity.
+    """
+    bot_username = telegram_api_credentials["bot_username"]
+
+    bot = await telegram_user_client.get_entity(bot_username)
+    yield bot
+
+
+@pytest.fixture
+async def telegram_send_and_wait(telegram_user_client, telegram_bot_entity):
+    """Helper to send message to bot and wait for response.
+
+    Sends a message to the bot via Telegram and waits for a response.
+
+    Args:
+        content: Message content to send
+
+    Returns:
+        The bot's response message
+
+    Usage:
+        response = await telegram_send_and_wait("Hello")
+        assert response.message.lower() == "pong"
+    """
+    from telethon.tl.types import Message
+
+    async def _send(content: str, timeout: float = 60.0):
+        sent_message = await telegram_user_client.send_message(telegram_bot_entity, content)
+
+        start_time = asyncio.get_event_loop().time()
+        while True:
+            elapsed = asyncio.get_event_loop().time() - start_time
+            if elapsed > timeout:
+                raise TimeoutError(f"Bot did not respond within {timeout} seconds")
+
+            messages = await telegram_user_client.get_messages(
+                telegram_bot_entity, limit=5, min_id=sent_message.id
+            )
+
+            for msg in messages:
+                if msg and isinstance(msg, Message) and msg.id > sent_message.id:
+                    return msg
+
+            await asyncio.sleep(0.5)
 
     return _send

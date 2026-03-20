@@ -66,6 +66,30 @@ When using the DeepAgents `litellm` provider in `~/.deepagents/config.toml`:
 - You are not limited to one key overall: for multiple providers you can use provider-specific environment variables (for example `OPENAI_API_KEY`, `ANTHROPIC_API_KEY`, `ZAI_API_KEY`) and/or per-model overrides under `params`.
 - A LiteLLM proxy is optional and only needed when you want centralized routing/policies/logging; it is not required just to use multiple provider keys.
 
+### Telegram E2E Tests (Requires Real Account)
+
+Telegram E2E tests use Telethon to test from a real user account perspective.
+
+**Setup:**
+1. Get API credentials: https://my.telegram.org/apps
+2. Set environment variables:
+```bash
+export TELEGRAM_API_ID=12345
+export TELEGRAM_API_HASH=abc123...
+export TEST_USER_PHONE=+49...
+export TELEGRAM_BOT_USERNAME=@your_bot
+```
+
+**Run tests:**
+```bash
+pytest tests/e2e/ -m live -v
+```
+
+**Test files:**
+- `test_telegram_basic.py` - Basic commands (/ping, /help, /new, /stop)
+- `test_telegram_messages.py` - Message flow and conversation
+- `test_telegram_errors.py` - Error handling and edge cases
+
 ## Model Configuration
 
 The model is configured in `~/.nanobot/config.json`:

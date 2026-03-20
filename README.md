@@ -269,6 +269,30 @@ ruff check nanobot_deep/
 ruff check --fix nanobot_deep/
 ```
 
+### Telegram E2E Tests (Requires Real Account)
+
+Telegram E2E tests use Telethon to test from a real user account perspective.
+
+**Required environment variables:**
+```bash
+export TELEGRAM_API_ID=12345
+export TELEGRAM_API_HASH=abc123...
+export TEST_USER_PHONE=+49...
+export TELEGRAM_BOT_USERNAME=@your_bot
+```
+
+**Run tests:**
+```bash
+pytest tests/e2e/test_telegram*.py -m live -v
+```
+
+**Test files:**
+- `test_telegram_basic.py` - Basic commands (/ping, /help, /new, /stop)
+- `test_telegram_messages.py` - Message flow and conversation
+- `test_telegram_errors.py` - Error handling and edge cases
+
+**Get API credentials:** https://my.telegram.org/apps
+
 ## License
 
 MIT

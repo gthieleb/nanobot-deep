@@ -61,13 +61,15 @@ export TELEGRAM_BOT_USERNAME=@your_bot
 
 **Run tests:**
 ```bash
-pytest tests/e2e/ -m live -v
+pytest tests/e2e/test_telegram*.py -m live -v
 ```
 
 **Test files:**
 - `test_telegram_basic.py` - Basic commands (/ping, /help, /new, /stop)
 - `test_telegram_messages.py` - Message flow and conversation
 - `test_telegram_errors.py` - Error handling and edge cases
+
+See [Testing](../../README.md#telegram-e2e-tests) section in main README.md for detailed instructions.
 
 ## Model Configuration
 

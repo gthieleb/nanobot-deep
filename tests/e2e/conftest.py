@@ -453,19 +453,28 @@ async def telegram_user_client(telegram_api_credentials):
     Client is disconnected after test.
     """
     from telethon import TelegramClient
+    from pathlib import Path
 
     api_id = telegram_api_credentials["api_id"]
     api_hash = telegram_api_credentials["api_hash"]
     phone = telegram_api_credentials["phone"]
 
-    client = TelegramClient("test_session_user", api_id, api_hash)
+    session_path = Path("test_session_user")
+
+    client = TelegramClient(str(session_path), api_id, api_hash)
 
     try:
         await client.connect()
 
         if not await client.is_user_authorized():
+            print("User not authorized. Attempting authentication...")
             await client.send_code_request(phone)
-            await client.sign_in(phone, input(f"Enter code for {phone}: "))
+            code = os.environ.get("TELEGRAM_AUTH_CODE", "")
+            if not code:
+                code = input(f"Enter code for {phone}: ")
+            await client.sign_in(phone, code)
+        else:
+            print(f"Using existing session: {session_path}")
 
         yield client
 

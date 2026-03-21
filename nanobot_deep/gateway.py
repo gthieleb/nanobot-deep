@@ -61,12 +61,36 @@ class DeepGateway:
         self.verbose = verbose
 
         self.bus: "MessageBus" = MessageBus()
+
+        # Use custom Telegram channel with /ping support
+        self._patch_telegram_channel()
+
         self.channels: "ChannelManager" = ChannelManager(config, self.bus)
         self.agent: "DeepAgent | None" = None
         self.checkpointer: "AsyncSqliteSaver | None" = None
 
         self._running = False
         self._shutdown_event = asyncio.Event()
+
+    def _patch_telegram_channel(self) -> None:
+        """Patch nanobot.channels.telegram to use custom TelegramChannel."""
+        import sys
+
+        from nanobot_deep.channels.telegram import CustomTelegramChannel
+
+        # Create a fake module that replaces the TelegramChannel import
+        class FakeTelegramModule:
+            TelegramChannel = CustomTelegramChannel
+
+        # Replace the telegram module in sys.modules
+        # This affects subsequent imports of TelegramChannel
+        if "nanobot.channels.telegram" in sys.modules:
+            original = sys.modules["nanobot.channels.telegram"]
+            # Save the original for reference if needed
+            original.TelegramChannel = CustomTelegramChannel
+        else:
+            # If not imported yet, set up a fake module
+            sys.modules["nanobot.channels.telegram"] = FakeTelegramModule()
 
     async def _setup_checkpointer(self) -> "AsyncSqliteSaver":
         """Create and setup the session checkpointer."""

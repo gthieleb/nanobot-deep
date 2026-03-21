@@ -69,6 +69,12 @@ pytest tests/e2e/test_telegram*.py -m live -v
 - `test_telegram_messages.py` - Message flow and conversation
 - `test_telegram_errors.py` - Error handling and edge cases
 
+**⚠️ IMPORTANT - STOP immediately on authentication or flood exceptions:**
+- **FloodWaitError**: Telegram has rate-limited the phone number. WAIT 15-30 minutes before retrying.
+- **PhoneCodeInvalidError**: The verification code was already used or is invalid. Get a NEW code from Telegram.
+- **ApiIdInvalidError**: The API_ID/API_HASH combination is invalid. Verify credentials from my.telegram.org/apps.
+- **CONSEQUENCES**: Continuing after these exceptions may lead to **account blocking** by Telegram.
+
 See [Testing](../../README.md#telegram-e2e-tests) section in main README.md for detailed instructions.
 
 ## Model Configuration

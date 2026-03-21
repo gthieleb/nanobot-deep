@@ -77,6 +77,27 @@ pytest tests/e2e/test_telegram*.py -m live -v
 
 See [Testing](../../README.md#telegram-e2e-tests) section in main README.md for detailed instructions.
 
+### Ticket Issue Retrieval
+
+When someone says "ticket anschauen" (ticket open), use `gh issue view` to get **full issue details** including:
+
+```bash
+# View issue with full comments
+gh issue view <issue_number>
+
+# Example: Get issue #12 with all comments
+gh issue view 12
+
+# This retrieves:
+# - Original description
+# - All comments (with timestamps)
+# - Current status
+# - Labels and metadata
+# - Commit history
+```
+
+**Important:** `gh issue list` only shows title/status, but `gh issue view` includes the complete conversation thread with all comments and updates.
+
 ## Model Configuration
 
 The model is configured in `~/.nanobot/config.json`:

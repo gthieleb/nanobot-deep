@@ -459,7 +459,8 @@ async def telegram_user_client(telegram_api_credentials):
     api_hash = telegram_api_credentials["api_hash"]
     phone = telegram_api_credentials["phone"]
 
-    session_path = Path("test_session_user")
+    session_path = Path(__file__).parent / "test_session_user"
+    print(f"Session path: {session_path.absolute()}")
 
     client = TelegramClient(str(session_path), api_id, api_hash)
 
@@ -473,8 +474,9 @@ async def telegram_user_client(telegram_api_credentials):
             if not code:
                 code = input(f"Enter code for {phone}: ")
             await client.sign_in(phone, code)
+            print(f"Session created: {session_path.absolute()}")
         else:
-            print(f"Using existing session: {session_path}")
+            print(f"Using existing session: {session_path.absolute()}")
 
         yield client
 

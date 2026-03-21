@@ -273,17 +273,44 @@ ruff check --fix nanobot_deep/
 
 Telegram E2E tests use Telethon to test from a real user account perspective.
 
+**Test Modes:**
+
+**Local Development (DM mode - default):**
+```bash
+source ~/env/ai/nanobot/ci  # Sets TELEGRAM_LOCAL_MODE="dm" by default
+pytest tests/e2e/test_telegram*.py -m live -v
+```
+- Tests run in DM (direct message) mode
+- Test user sends direct messages to bot
+- For local development and testing
+
+**CI/Production (Group mode):**
+```bash
+source ~/env/ai/nanobot/ci
+TELEGRAM_LOCAL_MODE=group pytest tests/e2e/test_telegram*.py -m live -v
+```
+- Tests run in nanobot-deep-ci group
+- Test user sends messages to group (you can control the group!)
+- For CI and production testing
+
 **Required environment variables:**
 ```bash
 export TELEGRAM_API_ID=12345
 export TELEGRAM_API_HASH=abc123...
 export TEST_USER_PHONE=+49...
 export TELEGRAM_BOT_USERNAME=@your_bot
+
+# For CI/Group mode:
+export TELEGRAM_CI_GROUP_ID=-1001234567890  # nanobot-deep-ci group (set this!)
 ```
 
 **Run tests:**
 ```bash
+# Local development (DM):
 pytest tests/e2e/test_telegram*.py -m live -v
+
+# CI (Group):
+TELEGRAM_LOCAL_MODE=group pytest tests/e2e/test_telegram*.py -m live -v
 ```
 
 **Test files:**

@@ -49,6 +49,26 @@ NANOBOT_TEST_MODEL=gpt-5-mini pytest tests/e2e/ -m live -v
 
 Telegram E2E tests use Telethon to test from a real user account perspective.
 
+**Test Modes:**
+
+**Local Development (DM mode - default):**
+```bash
+source ~/env/ai/nanobot/ci  # Sets TELEGRAM_LOCAL_MODE="dm" by default
+pytest tests/e2e/test_telegram*.py -m live -v
+```
+- Tests run in DM (direct message) mode
+- Test user sends direct messages to bot
+- For local development and testing
+
+**CI/Production (Group mode):**
+```bash
+source ~/env/ai/nanobot/ci
+TELEGRAM_LOCAL_MODE=group pytest tests/e2e/test_telegram*.py -m live -v
+```
+- Tests run in nanobot-deep-ci group
+- Test user sends messages to group (you can control the group!)
+- For CI and production testing
+
 **Setup:**
 1. Get API credentials: https://my.telegram.org/apps
 2. Set environment variables:
@@ -57,11 +77,18 @@ export TELEGRAM_API_ID=12345
 export TELEGRAM_API_HASH=abc123...
 export TEST_USER_PHONE=+49...
 export TELEGRAM_BOT_USERNAME=@your_bot
+
+# For CI/Group mode:
+export TELEGRAM_CI_GROUP_ID=-1001234567890  # nanobot-deep-ci group (set this!)
 ```
 
 **Run tests:**
 ```bash
+# Local development (DM):
 pytest tests/e2e/test_telegram*.py -m live -v
+
+# CI (Group):
+TELEGRAM_LOCAL_MODE=group pytest tests/e2e/test_telegram*.py -m live -v
 ```
 
 **Test files:**
@@ -123,6 +150,109 @@ The model is configured in `~/.nanobot/config.json`:
 - No comments unless explicitly requested
 - Follow existing patterns in the codebase
 - Run lint/typecheck after changes if available
+
+## Ticket Documentation Standards
+
+### Language
+
+**All tickets MUST be in English.**
+
+This applies to:
+- GitHub issues (titles, descriptions, comments)
+- Ticket documentation files (`docs/tickets/NNN-ticket-name.md`)
+- Code comments and commit messages (see Conventional Commits section)
+
+**Why English?**
+- International collaboration (GitHub, opencode-skills repo)
+- Consistency with existing codebase
+- Standard practice for open-source projects
+- Easier for AI agents to understand and process
+
+### Style Guidelines
+
+**Keep it loose and conversational!**
+
+- ❌ Don't be overly formal or academic
+- ✅ Use natural, conversational language
+- ✅ Write like you're explaining to a colleague
+- ✅ Be concise but clear
+
+**Good examples:**
+```markdown
+## Overview
+
+Let's explore adding multi-group support for Telegram E2E tests. The current setup uses a single group, which causes session conflicts when tests run in parallel.
+
+## Problem
+
+With one group, all tests share the same session context:
+- User A sets a secret
+- User B can see it
+- Tests can't run in parallel
+```
+
+**Bad examples:**
+```markdown
+## Overview
+
+This document provides a comprehensive analysis of the requirement to implement a multi-group testing infrastructure for the Telegram end-to-end test suite. The current architecture utilizes a solitary group configuration, which results in session contention during concurrent test execution.
+
+## Problem
+
+The existing single-group configuration presents several challenges:
+1. Session context is shared across all test scenarios
+2. Data leakage may occur between different test scenarios
+3. Parallel test execution is not feasible
+```
+
+### Ticket File Format
+
+When creating ticket documentation in `docs/tickets/`:
+
+```markdown
+# Ticket: [Title]
+
+## Overview
+
+[Brief description of what this ticket is about - 2-3 sentences]
+
+## Background
+
+[Context and current state]
+
+## Requirements
+
+[What needs to be done - bullet points]
+
+## Implementation
+
+[How to implement - technical approach]
+
+## Deliverables
+
+[What will be delivered]
+
+## References
+
+[Links to related docs, issues, or external resources]
+```
+
+### GitHub Issue Creation
+
+When creating GitHub issues from ticket files:
+
+```bash
+gh issue create \
+  --title "Ticket Title (English)" \
+  --body-file docs/tickets/NNN-ticket-name.md \
+  --label "enhancement" \
+  --label "phase-1"
+```
+
+**Important:**
+- Title MUST be in English
+- Body from ticket file MUST be in English
+- Use `--label` to categorize (phase, type, priority)
 
 ## Conventional Commits
 

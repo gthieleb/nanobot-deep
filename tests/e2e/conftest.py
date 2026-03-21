@@ -485,15 +485,32 @@ async def telegram_user_client(telegram_api_credentials):
 
 
 @pytest.fixture
-async def telegram_bot_entity(telegram_user_client, telegram_api_credentials):
-    """Get the bot entity to test against.
+async def telegram_bot_entity(telegram_user_client, telegram_api_credentials, request):
+    """Get the bot entity to test against - DM or group mode.
+
+    Resolves the bot username based on TELEGRAM_LOCAL_MODE:
+    - If mode is "group": Returns group entity using TELEGRAM_CI_GROUP_ID
+    - If mode is "dm" or not set: Returns bot entity using bot username
 
     Resolves the bot username and yields the bot entity.
     """
-    bot_username = telegram_api_credentials["bot_username"]
+    import os
 
-    bot = await telegram_user_client.get_entity(bot_username)
-    yield bot
+    bot_username = telegram_api_credentials["bot_username"]
+    mode = os.environ.get("TELEGRAM_LOCAL_MODE", "dm").lower()
+
+    if mode == "group":
+        # Group mode (nanobot-deep-ci group)
+        group_id = os.environ.get("TELEGRAM_CI_GROUP_ID")
+        if not group_id:
+            pytest.skip("TELEGRAM_CI_GROUP_ID not set for group mode")
+
+        bot = await telegram_user_client.get_entity(int(group_id))
+        yield bot
+    else:
+        # DM mode (local development)
+        bot = await telegram_user_client.get_entity(bot_username)
+        yield bot
 
 
 @pytest.fixture

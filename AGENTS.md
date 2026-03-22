@@ -125,6 +125,107 @@ gh issue view 12
 
 **Important:** `gh issue list` only shows title/status, but `gh issue view` includes the complete conversation thread with all comments and updates.
 
+### Ticket Documentation Standards
+
+**All tickets MUST be in English.**
+
+This applies to:
+- GitHub issues (titles, descriptions, comments)
+- Ticket documentation files (`docs/tickets/NNN-ticket-name.md`)
+- Code comments and commit messages (see Conventional Commits section)
+
+**Why English?**
+- International collaboration (GitHub, opencode-skills repo)
+- Consistency with existing codebase
+- Standard practice for open-source projects
+- Easier for AI agents to understand and process
+
+### Style Guidelines
+
+**Keep it loose and conversational!**
+
+- ❌ Don't be overly formal or academic
+- ✅ Use natural, conversational language
+- ✅ Write like you're explaining to a colleague
+- ✅ Be concise but clear
+
+**Good examples:**
+```markdown
+## Overview
+
+Let's explore adding multi-group support for Telegram E2E tests. The current setup uses a single group, which causes session conflicts when tests run in parallel.
+
+## Problem
+
+With one group, all tests share the same session context:
+- User A sets a secret
+- User B can see it
+- Tests can't run in parallel
+```
+
+**Bad examples:**
+```markdown
+## Overview
+
+This document provides a comprehensive analysis of the requirement to implement a multi-group testing infrastructure for the Telegram end-to-end test suite. The current architecture utilizes a solitary group configuration, which results in session contention during concurrent test execution.
+
+## Problem
+
+The existing single-group configuration presents several challenges:
+1. Session context is shared across all test scenarios
+2. Data leakage may occur between different test scenarios
+3. Parallel test execution is not feasible
+```
+
+### Ticket File Format
+
+When creating ticket documentation in `docs/tickets/`:
+
+```markdown
+# Ticket: [Title]
+
+## Overview
+
+[Brief description of what this ticket is about - 2-3 sentences]
+
+## Background
+
+[Context and current state]
+
+## Requirements
+
+[What needs to be done - bullet points]
+
+## Implementation
+
+[How to implement - technical approach]
+
+## Deliverables
+
+[What will be delivered]
+
+## References
+
+[Links to related docs, issues, or external resources]
+```
+
+### GitHub Issue Creation
+
+When creating GitHub issues from ticket files:
+
+```bash
+gh issue create \
+  --title "Ticket Title (English)" \
+  --body-file docs/tickets/NNN-ticket-name.md \
+  --label "enhancement" \
+  --label "phase-1"
+```
+
+**Important:**
+- Title MUST be in English
+- Body from ticket file MUST be in English
+- Use `--label` to categorize (phase, type, priority)
+
 ## Model Configuration
 
 The model is configured in `~/.nanobot/config.json`:

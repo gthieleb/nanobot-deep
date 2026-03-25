@@ -138,6 +138,21 @@ class DeepAgent:
         )
         return result.model
 
+    async def validate_model(self, timeout_seconds: float = 20.0) -> None:
+        """Validate model reachability and existence with a lightweight call."""
+        model = self._init_model()
+        model_name = self.dg_config.model.name or self.config.agents.defaults.model
+
+        try:
+            await asyncio.wait_for(
+                model.ainvoke([HumanMessage(content="Reply with OK.")]),
+                timeout=timeout_seconds,
+            )
+            logger.info(f"Model validation passed: {model_name}")
+        except Exception as e:
+            logger.error(f"Model validation failed for {model_name}: {e}")
+            raise RuntimeError(f"Model validation failed for {model_name}: {e}") from e
+
     def _init_backend(self) -> BackendProtocol:
         """Get or create the backend for file operations."""
         if self._backend is None:
@@ -375,9 +390,100 @@ Skills are available at: {self.workspace}/skills/ (read SKILL.md files as needed
             return OutboundMessage(
                 channel=msg.channel,
                 chat_id=msg.chat_id,
-                content=f"Sorry, I encountered an error: {str(e)}",
+                content=self._format_user_facing_error(e),
                 metadata=msg.metadata or {},
             )
+
+    @staticmethod
+    def _exception_chain(exc: Exception, max_depth: int = 6) -> list[BaseException]:
+        """Collect exception and nested causes/contexts."""
+        chain: list[BaseException] = []
+        current: BaseException | None = exc
+        seen: set[int] = set()
+
+        while current and len(chain) < max_depth:
+            if id(current) in seen:
+                break
+            seen.add(id(current))
+            chain.append(current)
+            current = current.__cause__ or current.__context__
+
+        return chain
+
+    @classmethod
+    def _format_user_facing_error(cls, exc: Exception) -> str:
+        """Map provider/runtime exceptions to clear user-facing error messages."""
+        chain = cls._exception_chain(exc)
+        names = {type(err).__name__.lower() for err in chain}
+        text = " ".join(str(err) for err in chain if str(err)).lower()
+
+        def has_name(*candidates: str) -> bool:
+            return any(candidate.lower() in names for candidate in candidates)
+
+        def has_text(*needles: str) -> bool:
+            return any(needle in text for needle in needles)
+
+        if has_name("RateLimitError", "RouterRateLimitError") or has_text(
+            "rate limit",
+            "too many requests",
+            "429",
+        ):
+            return "Provider rate limit reached (429). Please retry in a moment."
+
+        if has_name("BudgetExceededError") or has_text(
+            "insufficient_quota",
+            "quota exceeded",
+            "billing",
+            "credits",
+            "budget exceeded",
+        ):
+            return "Provider quota exceeded. Please check billing/quota and try again."
+
+        if has_name("AuthenticationError", "PermissionDeniedError") or has_text(
+            "invalid api key",
+            "authentication",
+            "unauthorized",
+            "forbidden",
+            "permission denied",
+            "401",
+            "403",
+        ):
+            return "Provider authentication/permission failed. Please verify API key and provider config."
+
+        if has_name(
+            "Timeout", "APIConnectionError", "ServiceUnavailableError", "BadGatewayError"
+        ) or has_text(
+            "timeout",
+            "timed out",
+            "connection",
+            "service unavailable",
+            "bad gateway",
+            "502",
+            "503",
+            "504",
+        ):
+            return "Provider timeout or connectivity issue. Please retry shortly."
+
+        if has_name(
+            "ContextWindowExceededError",
+            "BadRequestError",
+            "InvalidRequestError",
+            "UnprocessableEntityError",
+        ) or has_text(
+            "context window",
+            "too long",
+            "max token",
+            "maximum context length",
+            "invalid request",
+            "400",
+            "422",
+        ):
+            return "Provider rejected the request (invalid input or context too large)."
+
+        detail = str(chain[0]).strip() if chain else str(exc).strip()
+        if detail:
+            return f"Sorry, I encountered an error: {detail}"
+        return "Sorry, I encountered an unexpected error while calling the AI provider."
 
     async def _invoke_with_progress(
         self,

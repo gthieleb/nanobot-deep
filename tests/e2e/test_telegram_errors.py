@@ -17,6 +17,13 @@ import pytest
 pytestmark = pytest.mark.live
 
 
+def _is_rate_limited(message: str | None) -> bool:
+    if not message:
+        return False
+    content_lower = message.lower()
+    return "rate limit" in content_lower or "429" in content_lower
+
+
 class TestTelegramEmptyMessages:
     """Test handling of empty or whitespace messages."""
 
@@ -130,6 +137,8 @@ class TestTelegramLargeMessages:
 
         assert response is not None
         assert response.message is not None
+        if _is_rate_limited(response.message):
+            pytest.skip("Provider rate limited during live test")
         assert len(response.message) > 100
 
 
@@ -186,6 +195,8 @@ class TestTelegramErrorMessages:
 
         assert response is not None
         assert response.message is not None
+        if _is_rate_limited(response.message):
+            pytest.skip("Provider rate limited during live test")
         content_lower = response.message.lower()
         assert "error" not in content_lower or "cannot" in content_lower
 

@@ -1,13 +1,9 @@
-"""Custom Telegram channel with /ping support.
+"""Custom Telegram channel with /ping support for E2E tests."""
 
-Extends nanobot-ai's TelegramChannel to add /ping command handler
-for E2E testing compatibility.
-"""
-
-from telegram.ext import CommandHandler, ContextTypes
 from telegram import Update
 from telegram.request import HTTPXRequest
 from telegram.ext import Application, MessageHandler, filters
+from telegram.ext import CommandHandler, ContextTypes
 
 from nanobot.channels.telegram import TelegramChannel
 
@@ -15,7 +11,7 @@ from nanobot.channels.telegram import TelegramChannel
 class CustomTelegramChannel(TelegramChannel):
     """Telegram channel with extended command support.
 
-    Adds /ping command forwarding to the bus for E2E testing.
+    Adds /ping command handling for E2E testing.
     """
 
     async def start(self) -> None:
@@ -32,9 +28,6 @@ class CustomTelegramChannel(TelegramChannel):
         self._running = True
 
         # Build the application (copied from parent)
-        from telegram.request import HTTPXRequest
-        from telegram.ext import Application, CommandHandler, MessageHandler, filters
-
         req = HTTPXRequest(
             connection_pool_size=16, pool_timeout=5.0, connect_timeout=30.0, read_timeout=30.0
         )
@@ -49,12 +42,11 @@ class CustomTelegramChannel(TelegramChannel):
         # Add command handlers (from parent)
         self._app.add_handler(CommandHandler("start", self._on_start))
         self._app.add_handler(CommandHandler("new", self._forward_command))
+        self._app.add_handler(CommandHandler("stop", self._forward_command))
         self._app.add_handler(CommandHandler("help", self._on_help))
 
-        # Add /ping handler to forward to bus (CUSTOM - must be added before polling starts!)
+        # Add /ping handler (CUSTOM - must be added before polling starts!)
         self._app.add_handler(CommandHandler("ping", self._on_ping))
-        # Also add handler for PING (case-insensitive test)
-        self._app.add_handler(CommandHandler("PING", self._on_ping))
 
         # Add message handler for text, photos, voice, documents (from parent)
         self._app.add_handler(
@@ -77,6 +69,9 @@ class CustomTelegramChannel(TelegramChannel):
         await self._app.initialize()
         await self._app.start()
 
+        if self._app is None:
+            return
+
         # Get bot info and register command menu (from parent)
         bot_info = await self._app.bot.get_me()
         logger.info("Telegram bot @{} connected", bot_info.username)
@@ -87,8 +82,12 @@ class CustomTelegramChannel(TelegramChannel):
         except Exception as e:
             logger.warning("Failed to register bot commands: {}", e)
 
+        updater = self._app.updater
+        if updater is None:
+            return
+
         # Start polling (this runs until stopped) (from parent)
-        await self._app.updater.start_polling(
+        await updater.start_polling(
             allowed_updates=["message"],
             drop_pending_updates=True,  # Ignore old messages on startup
         )
@@ -100,21 +99,23 @@ class CustomTelegramChannel(TelegramChannel):
             await asyncio.sleep(1)
 
     async def _on_ping(self, update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
-        """Handle /ping command by forwarding to bus."""
-        if not update.message or not update.effective_user:
+        """Handle /ping command."""
+        if not update.message:
             return
+        await update.message.reply_text("pong")
 
-        message = update.message
-        user = update.effective_user
+    @staticmethod
+    def _is_ping_text(content: str | None) -> bool:
+        if not content:
+            return False
+        command = content.strip().split(" ", 1)[0]
+        if not command.startswith("/"):
+            return False
+        command_name = command[1:].split("@", 1)[0]
+        return command_name.lower() == "ping"
 
-        # Remember thread context for message threading
-        self._remember_thread_context(message)
-
-        # Forward to message bus for agent processing
-        await self._handle_message(
-            sender_id=self._sender_id(user),
-            chat_id=str(message.chat_id),
-            content=message.text,
-            metadata=self._build_message_metadata(message, user),
-            session_key=self._derive_topic_session_key(message),
-        )
+    async def _on_message(self, update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
+        if update.message and self._is_ping_text(update.message.text):
+            await update.message.reply_text("pong")
+            return
+        await super()._on_message(update, context)

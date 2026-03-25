@@ -17,6 +17,13 @@ import pytest
 pytestmark = pytest.mark.live
 
 
+def _is_rate_limited(message: str | None) -> bool:
+    if not message:
+        return False
+    content_lower = message.lower()
+    return "rate limit" in content_lower or "429" in content_lower
+
+
 class TestTelegramMessageFlow:
     """Test basic message processing flow."""
 
@@ -28,6 +35,8 @@ class TestTelegramMessageFlow:
 
         assert response is not None
         assert response.message is not None
+        if _is_rate_limited(response.message):
+            pytest.skip("Provider rate limited during live test")
         content_lower = response.message.lower()
         assert "hello" in content_lower or "world" in content_lower
 
@@ -39,6 +48,8 @@ class TestTelegramMessageFlow:
 
         assert response is not None
         assert response.message is not None
+        if _is_rate_limited(response.message):
+            pytest.skip("Provider rate limited during live test")
         assert len(response.message) > 0
 
     @pytest.mark.asyncio
@@ -50,6 +61,8 @@ class TestTelegramMessageFlow:
 
         assert response is not None
         assert response.message is not None
+        if _is_rate_limited(response.message):
+            pytest.skip("Provider rate limited during live test")
         assert len(response.message) > 0
 
     @pytest.mark.asyncio
@@ -60,6 +73,8 @@ class TestTelegramMessageFlow:
 
         assert response is not None
         assert response.message is not None
+        if _is_rate_limited(response.message):
+            pytest.skip("Provider rate limited during live test")
 
 
 class TestTelegramMultiTurnConversation:
@@ -74,6 +89,8 @@ class TestTelegramMultiTurnConversation:
 
         r2 = await telegram_send_and_wait("What is my name?")
         assert r2 is not None
+        if _is_rate_limited(r2.message):
+            pytest.skip("Provider rate limited during live test")
         content_lower = r2.message.lower()
         assert "alice" in content_lower
 
@@ -85,6 +102,8 @@ class TestTelegramMultiTurnConversation:
 
         r2 = await telegram_send_and_wait("What color did I mention?")
         assert r2 is not None
+        if _is_rate_limited(r2.message):
+            pytest.skip("Provider rate limited during live test")
         content_lower = r2.message.lower()
         assert "blue" in content_lower
 
@@ -98,6 +117,8 @@ class TestTelegramMultiTurnConversation:
 
         r3 = await telegram_send_and_wait("What is my secret code?")
         assert r3 is not None
+        if _is_rate_limited(r3.message):
+            pytest.skip("Provider rate limited during live test")
         content_lower = r3.message.lower()
         assert (
             "xyz123" not in content_lower
@@ -117,6 +138,8 @@ class TestTelegramReplyToMessages:
 
         assert response is not None
         assert response.message is not None
+        if _is_rate_limited(response.message):
+            pytest.skip("Provider rate limited during live test")
 
     @pytest.mark.asyncio
     @pytest.mark.timeout(60)
@@ -127,6 +150,8 @@ class TestTelegramReplyToMessages:
 
         r2 = await telegram_send_and_wait("Now what is 3 + 3?")
         assert r2 is not None
+        if _is_rate_limited(r2.message):
+            pytest.skip("Provider rate limited during live test")
         content_lower = r2.message.lower()
         assert "6" in content_lower or "three" in content_lower
 
@@ -142,6 +167,8 @@ class TestTelegramMessageRouting:
 
         assert response is not None
         assert response.message is not None
+        if _is_rate_limited(response.message):
+            pytest.skip("Provider rate limited during live test")
         assert "ok" in response.message.lower()
 
     @pytest.mark.asyncio
@@ -152,4 +179,6 @@ class TestTelegramMessageRouting:
 
         assert response is not None
         assert response.message is not None
+        if _is_rate_limited(response.message):
+            pytest.skip("Provider rate limited during live test")
         assert response.date is not None

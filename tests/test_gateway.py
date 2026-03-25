@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import asyncio
+from types import SimpleNamespace
 from unittest.mock import AsyncMock, MagicMock, patch
 
 import pytest
@@ -25,6 +26,28 @@ class TestDeepGateway:
             assert gateway.agent is None
             assert gateway.checkpointer is None
             assert gateway._running is False
+
+    def test_gateway_replaces_telegram_channel_with_custom(self, tmp_path):
+        from nanobot_deep.channels.telegram import CustomTelegramChannel
+        from nanobot_deep.gateway import DeepGateway
+
+        config = self._create_mock_config(tmp_path)
+        config.channels.telegram.enabled = True
+        config.providers = MagicMock()
+        config.providers.groq = MagicMock()
+        config.providers.groq.api_key = "test-key"
+
+        fake_manager = SimpleNamespace(
+            channels={"telegram": MagicMock()},
+            enabled_channels=["telegram"],
+            start_all=AsyncMock(),
+            stop_all=AsyncMock(),
+        )
+
+        with patch("nanobot.channels.manager.ChannelManager", return_value=fake_manager):
+            gateway = DeepGateway(config, tmp_path)
+
+        assert isinstance(gateway.channels.channels["telegram"], CustomTelegramChannel)
 
     @pytest.mark.asyncio
     async def test_gateway_setup_checkpointer(self, tmp_path):
@@ -53,6 +76,34 @@ class TestDeepGateway:
                     mock_connect.assert_awaited_once()
                     mock_checkpointer_cls.assert_called_once_with(mock_conn)
                     mock_checkpointer.setup.assert_awaited_once()
+
+    @pytest.mark.asyncio
+    async def test_setup_agent_runs_model_validation(self, tmp_path, monkeypatch):
+        from nanobot_deep.gateway import DeepGateway
+
+        config = self._create_mock_config(tmp_path)
+        config.providers = MagicMock()
+        config.providers.groq = MagicMock()
+        config.providers.groq.api_key = ""
+
+        with patch("nanobot.channels.manager.ChannelManager"):
+            gateway = DeepGateway(config, tmp_path)
+
+        gateway._setup_checkpointer = AsyncMock(return_value=MagicMock())
+
+        mock_agent = MagicMock()
+        mock_agent.validate_model = AsyncMock()
+
+        monkeypatch.setenv("NANOBOT_VALIDATE_MODEL_ON_START", "1")
+
+        with patch("nanobot_deep.agent.deep_agent.DeepAgent", return_value=mock_agent):
+            with patch(
+                "nanobot_deep.config.loader.load_deepagents_config", return_value=MagicMock()
+            ):
+                agent = await gateway._setup_agent()
+
+        assert agent is mock_agent
+        mock_agent.validate_model.assert_awaited_once()
 
     def test_gateway_stop(self, tmp_path):
         """Test gateway stop signal."""

@@ -13,6 +13,7 @@ This module provides the gateway functionality that:
 from __future__ import annotations
 
 import asyncio
+import os
 import signal
 from pathlib import Path
 from typing import TYPE_CHECKING
@@ -61,36 +62,36 @@ class DeepGateway:
         self.verbose = verbose
 
         self.bus: "MessageBus" = MessageBus()
-
-        # Use custom Telegram channel with /ping support
-        self._patch_telegram_channel()
-
         self.channels: "ChannelManager" = ChannelManager(config, self.bus)
+        self._ensure_custom_telegram_channel()
         self.agent: "DeepAgent | None" = None
         self.checkpointer: "AsyncSqliteSaver | None" = None
 
         self._running = False
         self._shutdown_event = asyncio.Event()
 
-    def _patch_telegram_channel(self) -> None:
-        """Patch nanobot.channels.telegram to use custom TelegramChannel."""
-        import sys
-
+    def _ensure_custom_telegram_channel(self) -> None:
+        """Replace Telegram channel instance with CustomTelegramChannel."""
         from nanobot_deep.channels.telegram import CustomTelegramChannel
 
-        # Create a fake module that replaces the TelegramChannel import
-        class FakeTelegramModule:
-            TelegramChannel = CustomTelegramChannel
+        channels = getattr(self.channels, "channels", None)
+        if not isinstance(channels, dict):
+            return
 
-        # Replace the telegram module in sys.modules
-        # This affects subsequent imports of TelegramChannel
-        if "nanobot.channels.telegram" in sys.modules:
-            original = sys.modules["nanobot.channels.telegram"]
-            # Save the original for reference if needed
-            original.TelegramChannel = CustomTelegramChannel
-        else:
-            # If not imported yet, set up a fake module
-            sys.modules["nanobot.channels.telegram"] = FakeTelegramModule()
+        telegram_channel = channels.get("telegram")
+        if telegram_channel is None or isinstance(telegram_channel, CustomTelegramChannel):
+            return
+
+        providers = getattr(self.config, "providers", None)
+        groq = getattr(providers, "groq", None)
+        groq_api_key = getattr(groq, "api_key", "")
+
+        channels["telegram"] = CustomTelegramChannel(
+            self.config.channels.telegram,
+            self.bus,
+            groq_api_key=groq_api_key,
+        )
+        logger.info("Using CustomTelegramChannel for Telegram")
 
     async def _setup_checkpointer(self) -> "AsyncSqliteSaver":
         """Create and setup the session checkpointer."""
@@ -118,6 +119,11 @@ class DeepGateway:
             checkpointer=self.checkpointer,
             deepagents_config=deepagents_config,
         )
+
+        validate_on_start = os.environ.get("NANOBOT_VALIDATE_MODEL_ON_START", "1").lower()
+        if validate_on_start not in {"0", "false", "no"}:
+            await agent.validate_model()
+
         return agent
 
     async def _process_inbound(self, msg: "InboundMessage") -> None:

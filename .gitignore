@@ -35,6 +35,7 @@ ENV/
 .pytest_cache/
 .coverage
 htmlcov/
+tests/e2e/test_session_user.session*
 
 # Type checking
 .mypy_cache/

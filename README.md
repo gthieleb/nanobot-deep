@@ -146,6 +146,15 @@ Create `~/.nanobot/deepagents.json`:
 }
 ```
 
+### LiteLLM Notes (including z.ai)
+
+When using DeepAgents with the `litellm` provider in `~/.deepagents/config.toml`:
+
+- Use `zai/` model names for z.ai (for example `litellm:zai/glm-4.5`).
+- A provider-level `api_key` under `[models.providers.litellm.params]` can be used as a global default key.
+- You are not limited to one key overall. For multi-provider setups, use provider-specific env vars (for example `OPENAI_API_KEY`, `ANTHROPIC_API_KEY`, `ZAI_API_KEY`) and/or per-model `params` overrides.
+- A LiteLLM proxy is optional. Use it for centralized routing/policies/logging, not because multiple keys are otherwise impossible.
+
 ## Langfuse Observability
 
 nanobot-deep supports Langfuse for observability and tracing of agent execution.

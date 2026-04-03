@@ -6,7 +6,7 @@ Usage:
     pytest tests/e2e/ -m live -v
 
     # Option 2: Override DeepAgents model
-    NANOBOT_TEST_MODEL=openai:gpt-4o-mini pytest tests/e2e/ -m live -v
+    DEEPAGENTS_TEST_MODEL=openai:gpt-4o-mini pytest tests/e2e/ -m live -v
 """
 
 from __future__ import annotations
@@ -59,7 +59,7 @@ def _apply_test_api_key_override(model_spec: str | None, test_api_key: str) -> s
     parsed = ModelSpec.try_parse(model_spec) if model_spec else None
     if parsed is None:
         return (
-            "NANOBOT_TEST_API_KEY requires NANOBOT_TEST_MODEL in provider:model format "
+            "NANOBOT_TEST_API_KEY requires DEEPAGENTS_TEST_MODEL in provider:model format "
             "(for example: openai:gpt-4o-mini)"
         )
 
@@ -79,7 +79,7 @@ def live_model_result():
     """Resolve a DeepAgents model for live tests using DeepAgents config."""
     from deepagents_cli.config import ModelConfigError, create_model
 
-    model_spec = os.environ.get("NANOBOT_TEST_MODEL")
+    model_spec = os.environ.get("DEEPAGENTS_TEST_MODEL") or os.environ.get("NANOBOT_TEST_MODEL")
     test_api_key = os.environ.get("NANOBOT_TEST_API_KEY")
     if test_api_key:
         error = _apply_test_api_key_override(model_spec, test_api_key)
@@ -333,6 +333,7 @@ async def live_deep_agent(
     mock_nanobot_config,
     deep_checkpointer,
     deep_agent_config,
+    live_model_result,
 ):
     """Create a DeepAgent instance for live testing."""
     from nanobot_deep.agent.deep_agent import DeepAgent
@@ -355,6 +356,7 @@ async def live_deep_gateway(
     mock_nanobot_config,
     deep_checkpointer,
     deep_agent_config,
+    live_model_result,
 ):
     """Start DeepGateway with DeepAgent for live testing.
 

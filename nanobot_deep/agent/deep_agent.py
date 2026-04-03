@@ -117,7 +117,9 @@ class DeepAgent:
             "max_tokens": self.dg_config.model.max_tokens,
             "temperature": self.dg_config.model.temperature,
         }
-        model_spec = os.environ.get("NANOBOT_TEST_MODEL") or None
+        model_spec = (
+            os.environ.get("DEEPAGENTS_TEST_MODEL") or os.environ.get("NANOBOT_TEST_MODEL") or None
+        )
 
         try:
             result = create_model(model_spec=model_spec, extra_kwargs=extra_kwargs)

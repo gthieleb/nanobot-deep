@@ -14,11 +14,11 @@ pytest tests/e2e/ -m live -v
 
 Default: `~/.nanobot/config.json`
 
-### NANOBOT_TEST_MODEL
+### DEEPAGENTS_TEST_MODEL
 Override the model for tests. Takes precedence over config file.
 
 ```bash
-NANOBOT_TEST_MODEL=gpt-5-mini pytest tests/e2e/ -m live -v
+DEEPAGENTS_TEST_MODEL=gpt-5-mini pytest tests/e2e/ -m live -v
 ```
 
 ### NANOBOT_TEST_API_KEY
@@ -42,8 +42,29 @@ export NANOBOT_CONFIG_PATH=~/.nanobot/config.json
 pytest tests/e2e/ -m live -v
 
 # Or override model
-NANOBOT_TEST_MODEL=gpt-5-mini pytest tests/e2e/ -m live -v
+DEEPAGENTS_TEST_MODEL=gpt-5-mini pytest tests/e2e/ -m live -v
 ```
+
+## Model-Specific E2E Documentation
+
+When running model-specific tests (for example with `DEEPAGENTS_TEST_MODEL=provider:model`), document both the executed test commands and their results under the DeepAgents skill documentation in:
+
+`https://github.com/gthieleb/opencode-skills`
+
+Keep entries concise and include:
+- model spec (`provider:model`)
+- test command
+- pass/fail status
+- key error details for failures
+
+## LiteLLM Provider Notes
+
+When using the DeepAgents `litellm` provider in `~/.deepagents/config.toml`:
+
+- For z.ai, use model names with the `zai/` prefix (for example `litellm:zai/glm-4.5`).
+- A single provider-level `api_key` under `[models.providers.litellm.params]` works as a global default.
+- You are not limited to one key overall: for multiple providers you can use provider-specific environment variables (for example `OPENAI_API_KEY`, `ANTHROPIC_API_KEY`, `ZAI_API_KEY`) and/or per-model overrides under `params`.
+- A LiteLLM proxy is optional and only needed when you want centralized routing/policies/logging; it is not required just to use multiple provider keys.
 
 ## Model Configuration
 

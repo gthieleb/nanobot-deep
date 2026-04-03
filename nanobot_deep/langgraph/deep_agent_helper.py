@@ -41,11 +41,24 @@ async def run_ralph_mode(
             "deepagents is required for Ralph mode. Install with: pip install deepagents"
         ) from e
 
+    try:
+        from deepagents_cli.config import ModelConfigError, create_model
+    except ImportError as e:
+        raise ImportError(
+            "deepagents-cli is required for model resolution. Install with: pip install deepagents-cli"
+        ) from e
+
+    try:
+        model_result = create_model(model_spec=model)
+    except ModelConfigError as e:
+        raise RuntimeError(
+            "DeepAgents model configuration error. Configure ~/.deepagents/config.toml "
+            "or set provider credentials environment variables. "
+            f"Original error: {e}"
+        ) from e
+
     backend = _create_backend(sandbox, workspace)
-    agent = create_deep_agent(
-        model=model or "anthropic/claude-sonnet-4-5",
-        backend=backend,
-    )
+    agent = create_deep_agent(model=model_result.model, backend=backend)
 
     iteration = 1
     try:

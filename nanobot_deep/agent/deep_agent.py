@@ -90,43 +90,51 @@ class DeepAgent:
         self._mcp_servers = config.tools.mcp_servers if hasattr(config, "tools") else {}
 
     def _init_model(self) -> Any:
-        """Initialize model with config from nanobot and deepagents."""
-        from langchain_litellm import ChatLiteLLM
+        """Initialize model from DeepAgents CLI configuration.
 
-        model_name = self.dg_config.model.name
-        api_key = self.dg_config.model.api_key
-        api_base = self.dg_config.model.api_base
+        Model/provider resolution is delegated to `deepagents_cli.config.create_model`
+        so `~/.deepagents/config.toml` is the sole source of truth.
+        """
+        try:
+            from deepagents_cli.config import ModelConfigError, create_model
+        except ImportError as e:
+            raise ImportError(
+                "deepagents-cli is required for model resolution. Install with: pip install deepagents-cli"
+            ) from e
+        import os
 
-        if not model_name:
-            model_name = self.config.agents.defaults.model
-            provider_config = self.config.get_provider(model_name)
-            if provider_config:
-                if not api_key:
-                    api_key = provider_config.api_key
-                if not api_base:
-                    api_base = provider_config.api_base
+        if (
+            self.dg_config.model.name
+            or self.dg_config.model.api_key
+            or self.dg_config.model.api_base
+        ):
+            logger.warning(
+                "deepagents.json model.* fields are ignored for model/provider resolution; "
+                "configure ~/.deepagents/config.toml instead"
+            )
 
-        if not model_name:
-            model_name = "anthropic/claude-sonnet-4-5"
-
-        logger.info(f"Initializing model: {model_name}")
-
-        kwargs = {}
-        if api_key:
-            kwargs["api_key"] = api_key
-        if api_base:
-            kwargs["base_url"] = api_base
-            logger.debug(f"Using API base: {api_base}")
-        kwargs["max_tokens"] = self.dg_config.model.max_tokens
-        kwargs["temperature"] = self.dg_config.model.temperature
+        extra_kwargs: dict[str, Any] = {
+            "max_tokens": self.dg_config.model.max_tokens,
+            "temperature": self.dg_config.model.temperature,
+        }
+        model_spec = os.environ.get("NANOBOT_TEST_MODEL") or None
 
         try:
-            model = ChatLiteLLM(model=model_name, **kwargs)
-            logger.info(f"Model {model_name} initialized successfully")
-            return model
-        except Exception as e:
-            logger.error(f"Failed to initialize model {model_name}: {e}")
-            raise
+            result = create_model(model_spec=model_spec, extra_kwargs=extra_kwargs)
+        except ModelConfigError as e:
+            msg = (
+                "DeepAgents model configuration error. Configure provider/model in "
+                "~/.deepagents/config.toml (or set provider credentials env vars), "
+                f"then retry. Original error: {e}"
+            )
+            raise RuntimeError(msg) from e
+
+        logger.info(
+            "Initialized DeepAgents model provider={} model={}",
+            result.provider,
+            result.model_name,
+        )
+        return result.model
 
     def _init_backend(self) -> BackendProtocol:
         """Get or create the backend for file operations."""

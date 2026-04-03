@@ -35,8 +35,9 @@ class BaseConfig(BaseModel):
 class DeepAgentsModelConfig(BaseConfig):
     """Model configuration for deepagents.
 
-    For standalone use (ralph mode), specify model and api_key here.
-    When used with nanobot, these are overridden by nanobot's config.json.
+    Only runtime tuning fields are used by nanobot-deep.
+    Provider/model selection is resolved by DeepAgents CLI config
+    (`~/.deepagents/config.toml`).
     """
 
     name: str | None = None
@@ -157,9 +158,9 @@ class DeepAgentsLangfuseConfig(BaseConfig):
 class DeepAgentsConfig(BaseConfig):
     """DeepAgents-specific configuration.
 
-    This config controls only the deepagents/LangGraph-specific behavior.
-    All LLM, provider, tool, and channel settings come from nanobot's
-    main config.json.
+    This config controls only the deepagents/LangGraph runtime behavior.
+    LLM/provider/model settings come from DeepAgents CLI config,
+    while channels and routing come from nanobot config.json.
 
     File: ~/.nanobot/deepagents.json
     """

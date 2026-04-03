@@ -7,6 +7,15 @@ Usage:
 
     # Option 2: Override DeepAgents model
     DEEPAGENTS_TEST_MODEL=openai:gpt-4o-mini pytest tests/e2e/ -m live -v
+
+    # Telegram E2E tests (require real Telegram user account):
+    # 1. Get API credentials: https://my.telegram.org/apps
+    # 2. Set environment variables:
+    #    export TELEGRAM_API_ID=12345
+    #    export TELEGRAM_API_HASH=abc123...
+    #    export TEST_USER_PHONE=+49...
+    #    export TELEGRAM_BOT_USERNAME=@your_bot
+    # 3. Run tests: pytest tests/e2e/ -m live -v
 """
 
 from __future__ import annotations
@@ -14,6 +23,7 @@ from __future__ import annotations
 import asyncio
 import os
 from pathlib import Path
+from typing import cast
 from typing import TYPE_CHECKING
 
 import pytest
@@ -445,5 +455,220 @@ async def deep_send_and_wait():
 
         response = await asyncio.wait_for(bus.consume_outbound(), timeout=timeout)
         return response
+
+    return _send
+
+
+@pytest.fixture(scope="session")
+def telegram_api_credentials():
+    """Load Telegram API credentials for E2E testing.
+
+    Requires these environment variables:
+    - TELEGRAM_API_ID: From https://my.telegram.org/apps
+    - TELEGRAM_API_HASH: From https://my.telegram.org/apps
+    - TEST_USER_PHONE: Phone number for test user account
+    - TELEGRAM_BOT_USERNAME: Bot username to test (e.g., @my_bot)
+
+    Returns dict with credentials or skips test if not set.
+    """
+    api_id = os.environ.get("TELEGRAM_API_ID")
+    api_hash = os.environ.get("TELEGRAM_API_HASH")
+    phone = os.environ.get("TEST_USER_PHONE")
+    bot_username = os.environ.get("TELEGRAM_BOT_USERNAME")
+
+    missing = [
+        var
+        for var, val in [
+            ("TELEGRAM_API_ID", api_id),
+            ("TELEGRAM_API_HASH", api_hash),
+            ("TEST_USER_PHONE", phone),
+            ("TELEGRAM_BOT_USERNAME", bot_username),
+        ]
+        if not val
+    ]
+
+    if missing:
+        pytest.skip(
+            f"Telegram E2E tests require: {', '.join(missing)}\n"
+            "Get credentials from https://my.telegram.org/apps\n"
+            "Example:\n"
+            "  export TELEGRAM_API_ID=12345\n"
+            "  export TELEGRAM_API_HASH=abc123...\n"
+            "  export TEST_USER_PHONE=+49...\n"
+            "  export TELEGRAM_BOT_USERNAME=@your_bot"
+        )
+
+    return {
+        "api_id": int(cast(str, api_id)),
+        "api_hash": api_hash,
+        "phone": phone,
+        "bot_username": bot_username,
+    }
+
+
+@pytest.fixture
+async def telegram_user_client(telegram_api_credentials):
+    """Create and connect a Telethon client for testing.
+
+    Yields a connected TelegramClient instance.
+    Client is disconnected after test.
+    """
+    from pathlib import Path
+
+    from telethon import TelegramClient
+
+    api_id = telegram_api_credentials["api_id"]
+    api_hash = telegram_api_credentials["api_hash"]
+    phone = telegram_api_credentials["phone"]
+
+    session_path = Path(__file__).parent / "test_session_user"
+    print(f"Session path: {session_path.absolute()}")
+
+    client = TelegramClient(str(session_path), api_id, api_hash)
+
+    try:
+        await client.connect()
+
+        if not await client.is_user_authorized():
+            print("User not authorized. Attempting authentication...")
+            await client.send_code_request(phone)
+            code = os.environ.get("TELEGRAM_AUTH_CODE", "")
+            if not code:
+                code = input(f"Enter code for {phone}: ")
+            await client.sign_in(phone, code)
+            print(f"Session created: {session_path.absolute()}")
+        else:
+            print(f"Using existing session: {session_path.absolute()}")
+
+        yield client
+
+    finally:
+        disconnect_result = client.disconnect()
+        if asyncio.iscoroutine(disconnect_result):
+            await disconnect_result
+
+
+@pytest.fixture
+async def telegram_bot_entity(telegram_user_client, telegram_api_credentials, request):
+    """Get bot entity to test against - DM or group mode.
+
+    Resolves to bot username based on TELEGRAM_LOCAL_MODE:
+    - If mode is "group": Returns group entity using get_input_entity(int(group_id))
+    - If mode is "dm" or not set: Returns bot entity using bot username
+
+    Resolves to bot username and yields to bot entity.
+    """
+    import os
+
+    bot_username = telegram_api_credentials["bot_username"]
+    mode = os.environ.get("TELEGRAM_LOCAL_MODE", "dm").lower()
+
+    if mode == "group":
+        # Group mode (nanobot-deep-ci group)
+        group_id = os.environ.get("TELEGRAM_CI_GROUP_ID")
+        if not group_id:
+            pytest.skip("TELEGRAM_CI_GROUP_ID not set for group mode")
+
+        # For groups, use get_input_entity() with channel ID (not get_entity() with user ID)
+        bot = await telegram_user_client.get_input_entity(int(cast(str, group_id)))
+        yield bot
+    else:
+        # DM mode (local development)
+        bot = await telegram_user_client.get_entity(bot_username)
+        yield bot
+
+
+@pytest.fixture
+async def telegram_send_and_wait(telegram_user_client, telegram_bot_entity):
+    """Helper to send message to bot and wait for response.
+
+    Sends a message to the bot via Telegram and waits for a response.
+
+    Args:
+        content: Message content to send
+
+    Returns:
+        The bot's response message
+
+    Usage:
+        response = await telegram_send_and_wait("Hello")
+        assert response.message.lower() == "pong"
+    """
+    from telethon.tl.types import Message
+    import os
+
+    bot_username = os.environ.get("TELEGRAM_BOT_USERNAME", "").lstrip("@")
+    mode = os.environ.get("TELEGRAM_LOCAL_MODE", "dm").lower()
+    bot_id = None
+
+    if bot_username:
+        try:
+            bot_entity = await telegram_user_client.get_entity(bot_username)
+            bot_id = getattr(bot_entity, "id", None)
+        except Exception:
+            bot_id = None
+
+    def normalize_content(content: str) -> str:
+        if mode != "group" or not bot_username:
+            return content
+
+        if content.startswith("/"):
+            first, *rest = content.split(" ", 1)
+            if "@" not in first:
+                first = f"{first}@{bot_username}"
+            if rest:
+                return f"{first} {rest[0]}"
+            return first
+
+        mention = f"@{bot_username}"
+        if mention.lower() in content.lower():
+            return content
+        return f"{mention} {content}"
+
+    async def _send(content: str, timeout: float = 20.0):
+        if not telegram_user_client.is_connected():
+            await telegram_user_client.connect()
+
+        normalized = normalize_content(content)
+        send_kwargs = {}
+        if mode == "group" and not normalized.startswith("/") and bot_id is not None:
+            recent = await telegram_user_client.get_messages(telegram_bot_entity, limit=10)
+            for recent_msg in recent:
+                if getattr(recent_msg, "sender_id", None) == bot_id:
+                    send_kwargs["reply_to"] = recent_msg.id
+                    break
+
+        sent_message = await telegram_user_client.send_message(
+            telegram_bot_entity,
+            normalized,
+            **send_kwargs,
+        )
+
+        start_time = asyncio.get_event_loop().time()
+        while True:
+            elapsed = asyncio.get_event_loop().time() - start_time
+            if elapsed > timeout:
+                raise TimeoutError(f"Bot did not respond within {timeout} seconds")
+
+            messages = await telegram_user_client.get_messages(
+                telegram_bot_entity, limit=5, min_id=sent_message.id
+            )
+
+            for msg in reversed(messages):
+                if not msg or not isinstance(msg, Message) or msg.id <= sent_message.id:
+                    continue
+
+                msg_sender_id = getattr(msg, "sender_id", None)
+                if bot_id is not None and msg_sender_id != bot_id:
+                    continue
+
+                reply_to = getattr(msg, "reply_to", None)
+                reply_to_msg_id = getattr(reply_to, "reply_to_msg_id", None)
+                if reply_to_msg_id is not None and reply_to_msg_id != sent_message.id:
+                    continue
+
+                return msg
+
+            await asyncio.sleep(0.5)
 
     return _send

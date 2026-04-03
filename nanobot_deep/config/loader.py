@@ -1,6 +1,6 @@
 """DeepAgents configuration loader.
 
-Handles loading deepagents.json and merging with nanobot config.
+Handles loading deepagents.json and merging runtime-only values from nanobot config.
 """
 
 from __future__ import annotations
@@ -81,13 +81,10 @@ def merge_with_nanobot_config(
     nanobot_config: "Config",
     deepagents_config: DeepAgentsConfig | None = None,
 ) -> DeepAgentsConfig:
-    """Merge nanobot config into deepagents config.
+    """Merge runtime settings from nanobot config into deepagents config.
 
-    nanobot config provides:
-    - Model name, provider, api_key
-    - max_tokens, temperature
-    - sandbox type
-    - MCP servers
+    nanobot config provides runtime wiring only:
+    - max_tool_iterations -> recursion_limit
     - tools.exec settings
     - workspace path
 
@@ -102,6 +99,9 @@ def merge_with_nanobot_config(
     Args:
         nanobot_config: nanobot Config instance
         deepagents_config: DeepAgentsConfig instance (loaded if None)
+
+    LLM/provider/model resolution is intentionally out of scope here and must
+    come from DeepAgents CLI configuration.
 
     Returns:
         Merged DeepAgentsConfig

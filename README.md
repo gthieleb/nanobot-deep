@@ -269,6 +269,7 @@ git commit -m "feat(memory): add conversation context middleware
 
 **CI/CD Integration**:
 - Semantic versioning automatically generates version numbers from commits
+- Scoped conventional commits (for example `feat(scope):`, `fix(scope):`) are treated as version bumps
 - GitHub releases include auto-generated changelogs
 - Docker images tagged with semantic versions
 

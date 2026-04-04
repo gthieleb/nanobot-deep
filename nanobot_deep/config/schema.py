@@ -37,7 +37,7 @@ class DeepAgentsModelConfig(BaseConfig):
 
     Only runtime tuning fields are used by nanobot-deep.
     Provider/model selection is resolved by DeepAgents CLI config
-    (`~/.deepagents/config.toml`).
+    (`~/.deepagents/config.toml` or `DEEPAGENTS_CONFIG_PATH`).
     """
 
     name: str | None = None
@@ -108,6 +108,7 @@ class DeepAgentsMiddlewareConfig(BaseConfig):
     enable_memory: bool = True
     enable_subagents: bool = True
     enable_filesystem: bool = True
+    enable_flatten_content_blocks: bool = True
 
 
 class DeepAgentsTaskRoutingConfig(BaseConfig):

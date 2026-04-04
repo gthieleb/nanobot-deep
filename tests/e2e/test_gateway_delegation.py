@@ -26,7 +26,7 @@ class TestGatewayReplyToFlow:
     """Test reply-to message handling through gateway."""
 
     @pytest.mark.asyncio
-    @pytest.mark.timeout(60)
+    @pytest.mark.timeout(30)
     async def test_reply_to_message_metadata_preserved(self, live_gateway, send_and_wait):
         """Test that reply_to_message metadata is preserved through gateway."""
         bus = live_gateway["bus"]
@@ -46,7 +46,7 @@ class TestGatewayReplyToFlow:
         )
 
         await bus.publish_inbound(msg)
-        response = await asyncio.wait_for(bus.consume_outbound(), timeout=60)
+        response = await asyncio.wait_for(bus.consume_outbound(), timeout=30)
 
         assert response.channel == "test"
         assert response.chat_id == "chat_reply_test"
@@ -54,7 +54,7 @@ class TestGatewayReplyToFlow:
         assert len(response.content) > 0
 
     @pytest.mark.asyncio
-    @pytest.mark.timeout(60)
+    @pytest.mark.timeout(30)
     async def test_reply_to_with_context_aware_response(self, live_gateway, send_and_wait):
         """Test that response considers reply context."""
         bus = live_gateway["bus"]
@@ -74,7 +74,7 @@ class TestGatewayReplyToFlow:
         )
 
         await bus.publish_inbound(msg)
-        response = await asyncio.wait_for(bus.consume_outbound(), timeout=60)
+        response = await asyncio.wait_for(bus.consume_outbound(), timeout=30)
 
         assert response.content
         assert response.chat_id == "chat_context_test"
@@ -126,7 +126,7 @@ class TestGatewayDelegationDecision:
     """Test delegation decisions based on message type."""
 
     @pytest.mark.asyncio
-    @pytest.mark.timeout(60)
+    @pytest.mark.timeout(30)
     async def test_regular_message_not_delegated(self, live_gateway, send_and_wait):
         """Test regular message without reply-to is processed normally."""
         bus = live_gateway["bus"]
@@ -138,7 +138,7 @@ class TestGatewayDelegationDecision:
         assert response.content
 
     @pytest.mark.asyncio
-    @pytest.mark.timeout(60)
+    @pytest.mark.timeout(30)
     async def test_command_not_delegated_even_with_reply_metadata(
         self, live_gateway, send_and_wait
     ):
@@ -171,7 +171,7 @@ class TestGatewayMultiChannelReply:
     """Test reply-to handling across different channel types."""
 
     @pytest.mark.asyncio
-    @pytest.mark.timeout(60)
+    @pytest.mark.timeout(30)
     async def test_telegram_style_reply(self, live_gateway):
         """Test Telegram-style reply message."""
         bus = live_gateway["bus"]
@@ -193,14 +193,14 @@ class TestGatewayMultiChannelReply:
         )
 
         await bus.publish_inbound(msg)
-        response = await asyncio.wait_for(bus.consume_outbound(), timeout=60)
+        response = await asyncio.wait_for(bus.consume_outbound(), timeout=30)
 
         assert response.channel == "telegram"
         assert response.chat_id == "tg_chat_456"
         assert response.content
 
     @pytest.mark.asyncio
-    @pytest.mark.timeout(60)
+    @pytest.mark.timeout(30)
     async def test_discord_style_reply(self, live_gateway):
         """Test Discord-style reply message."""
         bus = live_gateway["bus"]
@@ -223,14 +223,14 @@ class TestGatewayMultiChannelReply:
         )
 
         await bus.publish_inbound(msg)
-        response = await asyncio.wait_for(bus.consume_outbound(), timeout=60)
+        response = await asyncio.wait_for(bus.consume_outbound(), timeout=30)
 
         assert response.channel == "discord"
         assert response.chat_id == "discord_channel_456"
         assert response.content
 
     @pytest.mark.asyncio
-    @pytest.mark.timeout(60)
+    @pytest.mark.timeout(30)
     async def test_slack_style_thread_reply(self, live_gateway):
         """Test Slack-style thread reply."""
         bus = live_gateway["bus"]
@@ -253,7 +253,7 @@ class TestGatewayMultiChannelReply:
         )
 
         await bus.publish_inbound(msg)
-        response = await asyncio.wait_for(bus.consume_outbound(), timeout=60)
+        response = await asyncio.wait_for(bus.consume_outbound(), timeout=30)
 
         assert response.channel == "slack"
         assert response.chat_id == "C789012"
@@ -264,7 +264,7 @@ class TestGatewayReplyContextInResponse:
     """Test that reply context influences responses."""
 
     @pytest.mark.asyncio
-    @pytest.mark.timeout(60)
+    @pytest.mark.timeout(30)
     async def test_reply_context_acknowledged(self, live_gateway):
         """Test response acknowledges the replied message context."""
         bus = live_gateway["bus"]
@@ -284,7 +284,7 @@ class TestGatewayReplyContextInResponse:
         )
 
         await bus.publish_inbound(msg)
-        response = await asyncio.wait_for(bus.consume_outbound(), timeout=60)
+        response = await asyncio.wait_for(bus.consume_outbound(), timeout=30)
 
         assert response.content
         content_lower = response.content.lower()

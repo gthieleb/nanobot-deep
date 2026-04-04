@@ -21,7 +21,7 @@ class TestTelegramBasicCommands:
     """Test basic Telegram bot commands."""
 
     @pytest.mark.asyncio
-    @pytest.mark.timeout(60)
+    @pytest.mark.timeout(30)
     async def test_ping_command(self, telegram_send_and_wait):
         """Test /ping command returns pong."""
         response = await telegram_send_and_wait("/ping")
@@ -31,7 +31,7 @@ class TestTelegramBasicCommands:
         assert "pong" in response.message.lower()
 
     @pytest.mark.asyncio
-    @pytest.mark.timeout(60)
+    @pytest.mark.timeout(30)
     async def test_help_command(self, telegram_send_and_wait):
         """Test /help command shows help text."""
         response = await telegram_send_and_wait("/help")
@@ -42,7 +42,7 @@ class TestTelegramBasicCommands:
         assert any(word in content_lower for word in ["help", "commands", "usage", "available"])
 
     @pytest.mark.asyncio
-    @pytest.mark.timeout(60)
+    @pytest.mark.timeout(30)
     async def test_new_command(self, telegram_send_and_wait):
         """Test /new command clears session."""
         response = await telegram_send_and_wait("/new")
@@ -56,7 +56,7 @@ class TestTelegramBasicCommands:
         )
 
     @pytest.mark.asyncio
-    @pytest.mark.timeout(60)
+    @pytest.mark.timeout(30)
     async def test_stop_command(self, telegram_send_and_wait):
         """Test /stop command stops session."""
         response = await telegram_send_and_wait("/stop")
@@ -69,7 +69,7 @@ class TestTelegramUnknownCommand:
     """Test handling of unknown/invalid commands."""
 
     @pytest.mark.asyncio
-    @pytest.mark.timeout(60)
+    @pytest.mark.timeout(30)
     async def test_unknown_command(self, telegram_send_and_wait):
         """Test unknown command returns appropriate message."""
         try:
@@ -81,7 +81,7 @@ class TestTelegramUnknownCommand:
             assert response.message is not None
 
     @pytest.mark.asyncio
-    @pytest.mark.timeout(60)
+    @pytest.mark.timeout(30)
     async def test_invalid_slash_command(self, telegram_send_and_wait):
         """Test invalid slash command format."""
         try:
@@ -97,7 +97,7 @@ class TestTelegramSpecialCharacters:
     """Test handling of special characters in commands."""
 
     @pytest.mark.asyncio
-    @pytest.mark.timeout(60)
+    @pytest.mark.timeout(30)
     async def test_command_with_args(self, telegram_send_and_wait):
         """Test command with arguments."""
         response = await telegram_send_and_wait("/help test")
@@ -108,7 +108,7 @@ class TestTelegramSpecialCharacters:
         assert any(word in content_lower for word in ["help", "commands"])
 
     @pytest.mark.asyncio
-    @pytest.mark.timeout(60)
+    @pytest.mark.timeout(30)
     async def test_command_case_sensitive(self, telegram_send_and_wait):
         """Test command case sensitivity."""
         response = await telegram_send_and_wait("/PING")

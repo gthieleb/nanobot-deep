@@ -119,7 +119,7 @@ class TestLangfuseTraceCreation:
     """Test that traces are created in Langfuse."""
 
     @pytest.mark.asyncio
-    @pytest.mark.timeout(60)
+    @pytest.mark.timeout(30)
     async def test_simple_trace_created(
         self, langfuse_reachable, langfuse_credentials, langfuse_host, langfuse_client
     ):
@@ -146,7 +146,7 @@ class TestLangfuseTraceCreation:
         config.langfuse.session_id = trace_id
 
     @pytest.mark.asyncio
-    @pytest.mark.timeout(90)
+    @pytest.mark.timeout(30)
     async def test_trace_with_tool_calls(
         self, langfuse_reachable, langfuse_credentials, langfuse_host, tmp_path
     ):

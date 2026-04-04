@@ -6,6 +6,7 @@ creating a LangGraph-based agent with nanobot-specific tools and features.
 
 from __future__ import annotations
 
+import asyncio
 from collections.abc import Awaitable, Callable
 from contextlib import AsyncExitStack
 from pathlib import Path
@@ -13,12 +14,14 @@ from typing import TYPE_CHECKING, Any
 
 from loguru import logger
 
+from nanobot_deep.config.deepagents_cli import apply_deepagents_config_path
 from nanobot_deep.config.loader import merge_with_nanobot_config
 from nanobot_deep.config.schema import DeepAgentsConfig
 from nanobot_deep.langgraph.bridge import (
     extract_reply_context,
     should_delegate_task,
 )
+from nanobot_deep.langgraph.middleware import FlattenContentBlocksMiddleware
 
 if TYPE_CHECKING:
     from nanobot.bus.events import InboundMessage, OutboundMessage
@@ -28,6 +31,7 @@ try:
     from deepagents import create_deep_agent
     from deepagents.backends import FilesystemBackend, StateBackend
     from deepagents.backends.protocol import BackendProtocol
+    from deepagents.middleware.subagents import GENERAL_PURPOSE_SUBAGENT
 
     DEEPAGENTS_AVAILABLE = True
 except ImportError:
@@ -93,7 +97,7 @@ class DeepAgent:
         """Initialize model from DeepAgents CLI configuration.
 
         Model/provider resolution is delegated to `deepagents_cli.config.create_model`
-        so `~/.deepagents/config.toml` is the sole source of truth.
+        using `~/.deepagents/config.toml` or `DEEPAGENTS_CONFIG_PATH`.
         """
         try:
             from deepagents_cli.config import ModelConfigError, create_model
@@ -103,6 +107,8 @@ class DeepAgent:
             ) from e
         import os
 
+        apply_deepagents_config_path()
+
         if (
             self.dg_config.model.name
             or self.dg_config.model.api_key
@@ -110,7 +116,7 @@ class DeepAgent:
         ):
             logger.warning(
                 "deepagents.json model.* fields are ignored for model/provider resolution; "
-                "configure ~/.deepagents/config.toml instead"
+                "configure ~/.deepagents/config.toml (or set DEEPAGENTS_CONFIG_PATH) instead"
             )
 
         extra_kwargs: dict[str, Any] = {
@@ -126,7 +132,8 @@ class DeepAgent:
         except ModelConfigError as e:
             msg = (
                 "DeepAgents model configuration error. Configure provider/model in "
-                "~/.deepagents/config.toml (or set provider credentials env vars), "
+                "~/.deepagents/config.toml (or set DEEPAGENTS_CONFIG_PATH, or set provider "
+                "credentials env vars), "
                 f"then retry. Original error: {e}"
             )
             raise RuntimeError(msg) from e
@@ -173,6 +180,17 @@ class DeepAgent:
 
         system_prompt = self._build_system_prompt()
 
+        custom_middleware: list[Any] = []
+        subagents = None
+        if self.dg_config.middleware.enable_flatten_content_blocks:
+            custom_middleware.append(FlattenContentBlocksMiddleware())
+            subagents = [
+                {
+                    **GENERAL_PURPOSE_SUBAGENT,
+                    "middleware": [FlattenContentBlocksMiddleware()],
+                }
+            ]
+
         agent = create_deep_agent(
             model=model,
             tools=custom_tools,
@@ -181,6 +199,8 @@ class DeepAgent:
             checkpointer=self.checkpointer,
             skills=self.dg_config.get_skills_paths(self.workspace),
             memory=self.dg_config.get_memory_paths(self.workspace),
+            middleware=custom_middleware,
+            subagents=subagents,
             interrupt_on=self.dg_config.get_interrupt_on_config()
             if any(self.dg_config.get_interrupt_on_config().values())
             else None,
@@ -359,6 +379,16 @@ Skills are available at: {self.workspace}/skills/ (read SKILL.md files as needed
         )
 
         await self._connect_mcp()
+
+        content = msg.content.strip()
+        if content.startswith("/new"):
+            await self._clear_session_async(msg.session_key)
+            return OutboundMessage(
+                channel=msg.channel,
+                chat_id=msg.chat_id,
+                content="New session started.",
+                metadata=msg.metadata or {},
+            )
 
         should_delegate, delegate_type = self._should_delegate(msg)
         reply_context = self._get_reply_context(msg)
@@ -564,10 +594,34 @@ Skills are available at: {self.workspace}/skills/ (read SKILL.md files as needed
         response = await self.process(msg, on_progress=_progress)
         return response.content
 
+    async def _clear_session_async(self, session_key: str) -> bool:
+        checkpointer = self.checkpointer
+        if checkpointer is None:
+            return False
+        if hasattr(checkpointer, "adelete_thread"):
+            await checkpointer.adelete_thread(session_key)
+            return True
+        if hasattr(checkpointer, "delete_thread"):
+            checkpointer.delete_thread(session_key)
+            return True
+        if hasattr(checkpointer, "delete_session"):
+            result = checkpointer.delete_session(session_key)
+            if asyncio.iscoroutine(result):
+                await result
+            return True
+        return False
+
     def clear_session(self, session_key: str) -> bool:
         """Clear a session's history."""
-        if self.checkpointer:
-            return self.checkpointer.delete_session(session_key)
+        checkpointer = self.checkpointer
+        if checkpointer is None:
+            return False
+        if hasattr(checkpointer, "delete_thread"):
+            checkpointer.delete_thread(session_key)
+            return True
+        if hasattr(checkpointer, "delete_session"):
+            checkpointer.delete_session(session_key)
+            return True
         return False
 
     def get_history(self, session_key: str, limit: int = 100) -> list[dict]:

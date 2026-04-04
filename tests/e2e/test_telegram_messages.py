@@ -28,7 +28,7 @@ class TestTelegramMessageFlow:
     """Test basic message processing flow."""
 
     @pytest.mark.asyncio
-    @pytest.mark.timeout(60)
+    @pytest.mark.timeout(30)
     async def test_text_message(self, telegram_send_and_wait):
         """Test text message is processed correctly."""
         response = await telegram_send_and_wait("Say 'hello world'")
@@ -41,7 +41,7 @@ class TestTelegramMessageFlow:
         assert "hello" in content_lower or "world" in content_lower
 
     @pytest.mark.asyncio
-    @pytest.mark.timeout(60)
+    @pytest.mark.timeout(30)
     async def test_short_message(self, telegram_send_and_wait):
         """Test very short message."""
         response = await telegram_send_and_wait("Hi")
@@ -53,7 +53,7 @@ class TestTelegramMessageFlow:
         assert len(response.message) > 0
 
     @pytest.mark.asyncio
-    @pytest.mark.timeout(90)
+    @pytest.mark.timeout(30)
     async def test_long_message(self, telegram_send_and_wait):
         """Test long message processing."""
         long_text = "Please repeat the word 'test' 20 times: " + "test " * 20
@@ -66,7 +66,7 @@ class TestTelegramMessageFlow:
         assert len(response.message) > 0
 
     @pytest.mark.asyncio
-    @pytest.mark.timeout(60)
+    @pytest.mark.timeout(30)
     async def test_message_with_emoji(self, telegram_send_and_wait):
         """Test message containing emojis."""
         response = await telegram_send_and_wait("Say '👍' in your response")
@@ -81,7 +81,7 @@ class TestTelegramMultiTurnConversation:
     """Test multi-turn conversation flow."""
 
     @pytest.mark.asyncio
-    @pytest.mark.timeout(120)
+    @pytest.mark.timeout(30)
     async def test_sequential_messages(self, telegram_send_and_wait):
         """Test sequential messages in conversation."""
         r1 = await telegram_send_and_wait("Remember my name is Alice")
@@ -95,7 +95,7 @@ class TestTelegramMultiTurnConversation:
         assert "alice" in content_lower
 
     @pytest.mark.asyncio
-    @pytest.mark.timeout(120)
+    @pytest.mark.timeout(30)
     async def test_context_across_messages(self, telegram_send_and_wait):
         """Test context is maintained across messages."""
         await telegram_send_and_wait("Remember: color=blue")
@@ -108,7 +108,7 @@ class TestTelegramMultiTurnConversation:
         assert "blue" in content_lower
 
     @pytest.mark.asyncio
-    @pytest.mark.timeout(120)
+    @pytest.mark.timeout(30)
     async def test_session_reset(self, telegram_send_and_wait):
         """Test session reset clears context."""
         await telegram_send_and_wait("My secret code is XYZ123")
@@ -131,7 +131,7 @@ class TestTelegramReplyToMessages:
     """Test reply-to message handling."""
 
     @pytest.mark.asyncio
-    @pytest.mark.timeout(60)
+    @pytest.mark.timeout(30)
     async def test_reply_to_message(self, telegram_send_and_wait):
         """Test reply-to message is processed."""
         response = await telegram_send_and_wait("Yes, I agree with that")
@@ -142,7 +142,7 @@ class TestTelegramReplyToMessages:
             pytest.skip("Provider rate limited during live test")
 
     @pytest.mark.asyncio
-    @pytest.mark.timeout(60)
+    @pytest.mark.timeout(30)
     async def test_reply_with_context(self, telegram_send_and_wait):
         """Test reply considers previous context."""
         r1 = await telegram_send_and_wait("What is 2 + 2?")
@@ -160,7 +160,7 @@ class TestTelegramMessageRouting:
     """Test message routing and metadata."""
 
     @pytest.mark.asyncio
-    @pytest.mark.timeout(60)
+    @pytest.mark.timeout(30)
     async def test_message_has_sender_id(self, telegram_send_and_wait):
         """Test message includes sender information."""
         response = await telegram_send_and_wait("Just say 'ok'")
@@ -172,7 +172,7 @@ class TestTelegramMessageRouting:
         assert "ok" in response.message.lower()
 
     @pytest.mark.asyncio
-    @pytest.mark.timeout(60)
+    @pytest.mark.timeout(30)
     async def test_message_timestamp(self, telegram_send_and_wait):
         """Test message has timestamp."""
         response = await telegram_send_and_wait("Say 'timestamp test'")

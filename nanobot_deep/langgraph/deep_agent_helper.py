@@ -9,6 +9,9 @@ from typing import Any
 from rich.console import Console
 from loguru import logger
 
+from nanobot_deep.config.deepagents_cli import apply_deepagents_config_path
+from nanobot_deep.langgraph.middleware import FlattenContentBlocksMiddleware
+
 console = Console()
 
 
@@ -36,6 +39,7 @@ async def run_ralph_mode(
         from deepagents import create_deep_agent
         from deepagents.backends import FilesystemBackend
         from deepagents.backends.protocol import BackendProtocol, BackendFactory
+        from deepagents.middleware.subagents import GENERAL_PURPOSE_SUBAGENT
     except ImportError as e:
         raise ImportError(
             "deepagents is required for Ralph mode. Install with: pip install deepagents"
@@ -48,17 +52,30 @@ async def run_ralph_mode(
             "deepagents-cli is required for model resolution. Install with: pip install deepagents-cli"
         ) from e
 
+    apply_deepagents_config_path()
     try:
         model_result = create_model(model_spec=model)
     except ModelConfigError as e:
         raise RuntimeError(
             "DeepAgents model configuration error. Configure ~/.deepagents/config.toml "
-            "or set provider credentials environment variables. "
+            "(or set DEEPAGENTS_CONFIG_PATH) or set provider credentials environment variables. "
             f"Original error: {e}"
         ) from e
 
     backend = _create_backend(sandbox, workspace)
-    agent = create_deep_agent(model=model_result.model, backend=backend)
+    custom_middleware = [FlattenContentBlocksMiddleware()]
+    subagents = [
+        {
+            **GENERAL_PURPOSE_SUBAGENT,
+            "middleware": [FlattenContentBlocksMiddleware()],
+        }
+    ]
+    agent = create_deep_agent(
+        model=model_result.model,
+        backend=backend,
+        middleware=custom_middleware,
+        subagents=subagents,
+    )
 
     iteration = 1
     try:

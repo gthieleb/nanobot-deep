@@ -22,7 +22,7 @@ class TestGatewayBasic:
     """Basic gateway functionality tests."""
 
     @pytest.mark.asyncio
-    @pytest.mark.timeout(60)
+    @pytest.mark.timeout(30)
     async def test_simple_message(self, live_gateway, send_and_wait, assert_response):
         """Test basic message processing through gateway."""
         bus = live_gateway["bus"]
@@ -34,7 +34,7 @@ class TestGatewayBasic:
         assert "pong" in response.content.lower()
 
     @pytest.mark.asyncio
-    @pytest.mark.timeout(60)
+    @pytest.mark.timeout(30)
     async def test_message_routing(self, live_gateway):
         """Test message is routed to correct channel/chat."""
         bus = live_gateway["bus"]
@@ -55,7 +55,7 @@ class TestGatewayBasic:
         assert "hello" in response.content.lower()
 
     @pytest.mark.asyncio
-    @pytest.mark.timeout(60)
+    @pytest.mark.timeout(30)
     async def test_empty_message_handling(self, live_gateway, send_and_wait):
         """Test gateway handles empty or whitespace messages."""
         bus = live_gateway["bus"]
@@ -99,7 +99,7 @@ class TestGatewayErrorHandling:
     """Test error handling in gateway."""
 
     @pytest.mark.asyncio
-    @pytest.mark.timeout(60)
+    @pytest.mark.timeout(30)
     async def test_invalid_tool_request(self, live_gateway, send_and_wait):
         """Test gateway handles requests for non-existent tools gracefully."""
         bus = live_gateway["bus"]
@@ -114,13 +114,13 @@ class TestGatewayErrorHandling:
         assert "error" not in response.content.lower() or "cannot" in response.content.lower()
 
     @pytest.mark.asyncio
-    @pytest.mark.timeout(60)
+    @pytest.mark.timeout(30)
     async def test_long_message(self, live_gateway, send_and_wait):
         """Test gateway handles long messages."""
         bus = live_gateway["bus"]
 
         long_message = "Repeat after me: " + "hello " * 100
-        response = await send_and_wait(bus, long_message, timeout=90)
+        response = await send_and_wait(bus, long_message, timeout=30)
 
         assert response.content
         assert len(response.content) > 0
@@ -130,7 +130,7 @@ class TestGatewayConcurrency:
     """Test concurrent message handling."""
 
     @pytest.mark.asyncio
-    @pytest.mark.timeout(120)
+    @pytest.mark.timeout(30)
     async def test_sequential_messages_same_session(self, live_gateway, send_and_wait):
         """Test sequential messages in same session are processed in order."""
         bus = live_gateway["bus"]
@@ -143,7 +143,7 @@ class TestGatewayConcurrency:
         assert "second" in r2.content.lower()
 
     @pytest.mark.asyncio
-    @pytest.mark.timeout(120)
+    @pytest.mark.timeout(30)
     async def test_messages_different_sessions(self, live_gateway):
         """Test messages in different sessions can be processed."""
         bus = live_gateway["bus"]
@@ -163,7 +163,7 @@ class TestGatewayConcurrency:
         # Collect both responses
         responses = []
         for _ in range(2):
-            r = await asyncio.wait_for(bus.consume_outbound(), timeout=60)
+            r = await asyncio.wait_for(bus.consume_outbound(), timeout=30)
             responses.append(r)
 
         contents = [r.content.lower() for r in responses]

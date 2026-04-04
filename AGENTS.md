@@ -14,6 +14,16 @@ pytest tests/e2e/ -m live -v
 
 Default: `~/.nanobot/config.json`
 
+### DEEPAGENTS_CONFIG_PATH
+Path to the DeepAgents CLI model config file (config.toml). Overrides the default.
+
+```bash
+export DEEPAGENTS_CONFIG_PATH=~/.deepagents/config.toml
+pytest tests/e2e/ -m live -v
+```
+
+Default: `~/.deepagents/config.toml`
+
 ### DEEPAGENTS_TEST_MODEL
 Override the model for tests. Takes precedence over config file.
 
@@ -69,6 +79,8 @@ When using the DeepAgents `litellm` provider in `~/.deepagents/config.toml`:
 ### Telegram E2E Tests (Requires Real Account)
 
 Telegram E2E tests use Telethon to test from a real user account perspective.
+See `README.md#telegram-e2e-tests-requires-real-account` for the full setup guide.
+You can load the TELEGRAM_* environment variables with `source /home/gun/env/telegram/app/ci`.
 
 **Test Modes:**
 

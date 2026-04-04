@@ -356,6 +356,8 @@ TELEGRAM_LOCAL_MODE=group pytest tests/e2e/test_telegram*.py -m live -v
 
 **Required environment variables:**
 ```bash
+source /home/gun/env/telegram/app/ci
+
 export TELEGRAM_API_ID=12345
 export TELEGRAM_API_HASH=abc123...
 export TEST_USER_PHONE=+49...

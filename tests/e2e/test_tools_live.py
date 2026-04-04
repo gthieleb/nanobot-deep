@@ -23,7 +23,7 @@ class TestFileReadTool:
     """Test file read operations through gateway."""
 
     @pytest.mark.asyncio
-    @pytest.mark.timeout(90)
+    @pytest.mark.timeout(30)
     async def test_read_file(self, live_gateway, workspace):
         """Test reading a file through the agent."""
         bus = live_gateway["bus"]
@@ -41,12 +41,12 @@ class TestFileReadTool:
             )
         )
 
-        response = await asyncio.wait_for(bus.consume_outbound(), timeout=60)
+        response = await asyncio.wait_for(bus.consume_outbound(), timeout=30)
 
         assert "Hello from the test file" in response.content
 
     @pytest.mark.asyncio
-    @pytest.mark.timeout(90)
+    @pytest.mark.timeout(30)
     async def test_read_nonexistent_file(self, live_gateway, send_and_wait):
         """Test handling of non-existent file."""
         bus = live_gateway["bus"]
@@ -67,7 +67,7 @@ class TestFileWriteTool:
     """Test file write operations through gateway."""
 
     @pytest.mark.asyncio
-    @pytest.mark.timeout(90)
+    @pytest.mark.timeout(30)
     async def test_write_file(self, live_gateway, workspace, send_and_wait):
         """Test writing a file through the agent."""
         bus = live_gateway["bus"]
@@ -82,7 +82,7 @@ class TestFileWriteTool:
         assert "Written by agent" in written_file.read_text()
 
     @pytest.mark.asyncio
-    @pytest.mark.timeout(90)
+    @pytest.mark.timeout(30)
     async def test_write_nested_path(self, live_gateway, workspace, send_and_wait):
         """Test writing to nested directory."""
         bus = live_gateway["bus"]
@@ -100,7 +100,7 @@ class TestFileEditTool:
     """Test file edit operations through gateway."""
 
     @pytest.mark.asyncio
-    @pytest.mark.timeout(90)
+    @pytest.mark.timeout(30)
     async def test_edit_file(self, live_gateway, workspace, send_and_wait):
         """Test editing a file through the agent."""
         bus = live_gateway["bus"]
@@ -119,7 +119,7 @@ class TestFileEditTool:
         assert "Original" not in content
 
     @pytest.mark.asyncio
-    @pytest.mark.timeout(90)
+    @pytest.mark.timeout(30)
     async def test_edit_preserves_rest(self, live_gateway, workspace, send_and_wait):
         """Test that edit preserves content outside the edit."""
         bus = live_gateway["bus"]
@@ -141,7 +141,7 @@ class TestListDirTool:
     """Test directory listing through gateway."""
 
     @pytest.mark.asyncio
-    @pytest.mark.timeout(90)
+    @pytest.mark.timeout(30)
     async def test_list_directory(self, live_gateway, workspace, send_and_wait):
         """Test listing directory contents."""
         bus = live_gateway["bus"]
@@ -164,7 +164,7 @@ class TestToolChaining:
     """Test multiple tool operations in sequence."""
 
     @pytest.mark.asyncio
-    @pytest.mark.timeout(120)
+    @pytest.mark.timeout(30)
     async def test_read_write_chain(self, live_gateway, workspace, send_and_wait):
         """Test reading one file and writing to another."""
         bus = live_gateway["bus"]
@@ -180,14 +180,14 @@ class TestToolChaining:
         assert "Source content to copy" in dest.read_text()
 
     @pytest.mark.asyncio
-    @pytest.mark.timeout(120)
+    @pytest.mark.timeout(30)
     async def test_multi_step_task(self, live_gateway, workspace, send_and_wait):
         """Test a multi-step task with multiple tool calls."""
         bus = live_gateway["bus"]
 
         response = await send_and_wait(
             bus,
-            "Create a file called todo.txt with the content 'Task 1: Done', then read it back and confirm",
+            "Create a file called todo.txt with the content 'Task 1: Done'. Then read it back and reply with just 'ok'.",
         )
 
         # Verify file exists
@@ -196,4 +196,4 @@ class TestToolChaining:
         assert "Task 1: Done" in todo_file.read_text()
 
         # Response should confirm
-        assert "done" in response.content.lower() or "created" in response.content.lower()
+        assert "ok" in response.content.lower() or "done" in response.content.lower()

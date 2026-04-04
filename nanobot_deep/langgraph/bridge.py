@@ -157,15 +157,30 @@ def translate_result_to_outbound(
     messages = result.get("messages", [])
     final_content = ""
 
+    def _extract_text(content: Any) -> str:
+        if isinstance(content, str):
+            return content
+        if isinstance(content, list):
+            parts: list[str] = []
+            for item in content:
+                if isinstance(item, str):
+                    parts.append(item)
+                elif isinstance(item, dict):
+                    text = item.get("text")
+                    if text and item.get("type") != "thinking":
+                        parts.append(str(text))
+            return "\n".join(part for part in parts if part)
+        return str(content)
+
     for message in reversed(messages):
         if isinstance(message, AIMessage):
-            final_content = str(message.content) or ""
+            final_content = _extract_text(message.content) or ""
             break
 
     if not final_content and messages:
         last_msg = messages[-1]
         if hasattr(last_msg, "content"):
-            final_content = str(last_msg.content) or "Task completed."
+            final_content = _extract_text(last_msg.content) or "Task completed."
 
     return OutboundMessage(
         channel=msg.channel,

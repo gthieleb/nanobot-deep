@@ -3,6 +3,8 @@
 Usage:
     # Option 1: Use existing nanobot config for channels/workspace
     export NANOBOT_CONFIG_PATH=~/.nanobot/config.json
+    # Optional: Override DeepAgents config.toml path
+    export DEEPAGENTS_CONFIG_PATH=~/.deepagents/config.toml
     pytest tests/e2e/ -m live -v
 
     # Option 2: Override DeepAgents model
@@ -88,6 +90,7 @@ def _apply_test_api_key_override(model_spec: str | None, test_api_key: str) -> s
 def live_model_result():
     """Resolve a DeepAgents model for live tests using DeepAgents config."""
     from deepagents_cli.config import ModelConfigError, create_model
+    from nanobot_deep.config.deepagents_cli import apply_deepagents_config_path
 
     model_spec = os.environ.get("DEEPAGENTS_TEST_MODEL") or os.environ.get("NANOBOT_TEST_MODEL")
     test_api_key = os.environ.get("NANOBOT_TEST_API_KEY")
@@ -96,12 +99,14 @@ def live_model_result():
         if error:
             pytest.skip(error)
 
+    apply_deepagents_config_path()
     try:
         return create_model(model_spec)
     except ModelConfigError as e:
         pytest.skip(
             "DeepAgents model config is not ready for live tests: "
-            f"{e}. Configure ~/.deepagents/config.toml or set provider credentials env vars."
+            f"{e}. Configure ~/.deepagents/config.toml (or set DEEPAGENTS_CONFIG_PATH) "
+            "or set provider credentials env vars."
         )
 
 

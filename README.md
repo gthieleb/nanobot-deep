@@ -317,6 +317,10 @@ pytest tests/ --cov=nanobot_deep --cov-report=term
 pytest tests/test_deepagents_config.py -v
 ```
 
+### Dependency Constraints (CI)
+CI installs dependencies using `constraints.txt` to avoid resolver conflicts between
+`nanobot-ai` and `deepagents-cli`.
+
 ### Code Quality
 
 ```bash

@@ -99,11 +99,11 @@ jobs:
         with:
           tag_prefix: "v"
           major_pattern: "(MAJOR)"
-          minor_pattern: "feat:"
+          minor_pattern: "feat(\\(.+\\))?:"
           version_format: "${major}.${minor}.${patch}"
           search_commit_body: true
           bump_each_commit: true
-          bump_each_commit_patch_pattern: "fix:"
+          bump_each_commit_patch_pattern: "fix(\\(.+\\))?:"
           user_format_type: "csv"
 
       - name: Check if prerelease
@@ -121,9 +121,70 @@ jobs:
           echo "Version Tag: ${{ steps.version.outputs.version_tag }}"
           echo "Is Prerelease: ${{ steps.check_prerelease.outputs.is_prerelease }}"
 
+  sync_version:
+    name: Sync Package Version
+    needs: versioning
+    runs-on: ubuntu-latest
+    outputs:
+      version_synced: ${{ steps.sync.outputs.version_synced }}
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+
+      - name: Sync version files
+        id: sync
+        env:
+          VERSION: ${{ needs.versioning.outputs.version }}
+        run: |
+          if [[ "${{ github.ref }}" != "refs/heads/main" ]]; then
+            echo "version_synced=true" >> $GITHUB_OUTPUT
+            exit 0
+          fi
+
+          python - <<'PY'
+          import os
+          import re
+          from pathlib import Path
+
+          version = os.environ["VERSION"].strip()
+
+          def update(path: Path, pattern: str, replacement: str) -> bool:
+            text = path.read_text(encoding="utf-8")
+            new_text, count = re.subn(pattern, replacement, text, count=1, flags=re.M)
+            if count == 0:
+              raise SystemExit(f"Pattern not found in {path}")
+            if new_text != text:
+              path.write_text(new_text, encoding="utf-8")
+              return True
+            return False
+
+          changed = False
+          changed |= update(Path("pyproject.toml"), r'^\s*version\s*=\s*"[^"]+"', f'version = "{version}"')
+          changed |= update(Path("nanobot_deep/__init__.py"), r'^__version__\s*=\s*"[^"]+"', f'__version__ = "{version}"')
+          print(f"Version sync changed files: {changed}")
+          PY
+
+          if git diff --quiet; then
+            echo "version_synced=true" >> $GITHUB_OUTPUT
+            exit 0
+          fi
+
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git add pyproject.toml nanobot_deep/__init__.py
+          git commit -m "chore(release): sync version ${VERSION}"
+          git push
+          echo "version_synced=false" >> $GITHUB_OUTPUT
+
   docker:
     name: Build & Push Docker Image
-    needs: versioning
+    needs: [versioning, sync_version]
+    if: needs.sync_version.outputs.version_synced == 'true'
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
@@ -170,8 +231,8 @@ jobs:
 
   release:
     name: Create GitHub Release
-    needs: [docker, versioning]
-    if: github.ref == 'refs/heads/main' && needs.versioning.outputs.is_prerelease == 'false'
+    needs: [docker, versioning, sync_version]
+    if: github.ref == 'refs/heads/main' && needs.versioning.outputs.is_prerelease == 'false' && needs.sync_version.outputs.version_synced == 'true'
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4

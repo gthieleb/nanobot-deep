@@ -38,6 +38,15 @@ Override the API key for tests. Takes precedence over config file.
 NANOBOT_TEST_API_KEY=sk-xxx pytest tests/e2e/ -m live -v
 ```
 
+## Configuration References
+
+See the README configuration overview for the active config sources and examples:
+`README.md#configuration-overview`.
+
+## Documentation Workflow
+
+- Do not open PRs for docs-only changes. Commit directly to `main`.
+
 ## Running Tests
 
 ### Unit Tests

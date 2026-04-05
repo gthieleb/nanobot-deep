@@ -42,7 +42,7 @@ uv tool install nanobot-deep
 # Initialize nanobot configuration (if not done already)
 nanobot-deep onboard
 
-# Create deepagents config
+# Optional: create deepagents.json for advanced DeepAgent settings
 nanobot-deep config
 
 # Start the gateway with DeepAgent backend
@@ -85,7 +85,7 @@ nanobot-deep agent -m "Hello" --logs
 |---------|-------------|---------------|
 | `gateway` | Start channel gateway | DeepAgent ✅ |
 | `agent` | Direct CLI chat | DeepAgent ✅ |
-| `config` | Manage deepagents.json | N/A |
+| `config` | Create/view optional deepagents.json | N/A |
 | `deep` | Check DeepAgent availability | N/A |
 | `status` | Show nanobot status | nanobot |
 | `onboard` | Initialize configuration | nanobot |
@@ -98,7 +98,7 @@ nanobot-deep agent -m "Hello" --logs
 # Check DeepAgent availability
 nanobot-deep deep
 
-# Create/view deepagents.json config
+# Create/view optional deepagents.json config
 nanobot-deep config
 
 # Start gateway with DeepAgent backend
@@ -123,16 +123,101 @@ This package provides **glue code** that integrates:
 | `DeepAgent` | Wrapper around `deepagents.create_deep_agent()` |
 | `LangGraphBridge` | Translates messages between nanobot and LangGraph |
 | `SessionCheckpointer` | SQLite-based session persistence |
-| `DeepAgentsConfig` | Configuration schema for deepagents.json |
+| `DeepAgentsConfig` | Configuration schema for optional deepagents.json |
 
-## Configuration
+## Configuration Overview
 
-Create `~/.nanobot/deepagents.json`:
+nanobot-deep reads configuration from two required files and one optional file.
+Model/provider settings live in deepagents-cli config; channels and workspace
+settings live in nanobot config; DeepAgent runtime tuning is optional.
+
+| File | Required | Purpose |
+|------|----------|---------|
+| `~/.nanobot/config.json` | Yes | Channels, workspace, agent defaults, tool exec settings |
+| `~/.deepagents/config.toml` | Yes | Model/provider config for deepagents-cli |
+| `~/.nanobot/deepagents.json` | Optional | DeepAgent runtime tuning (middleware, summarization, task routing, subagents, checkpointer, backend) |
+
+### Required: nanobot config (channels + defaults)
+
+Minimal example (add your channels and API keys as needed):
+
+```json
+{
+  "agents": {
+    "defaults": {
+      "model": "anthropic/claude-opus-4-5",
+      "max_tokens": 8192,
+      "temperature": 0.7
+    }
+  },
+  "providers": {
+    "anthropic": {
+      "api_key": "sk-..."
+    }
+  },
+  "channels": {
+    "telegram": {
+      "enabled": true,
+      "token": "123:abc"
+    }
+  }
+}
+```
+
+Note: DeepAgent model/provider selection does not come from this file. It comes
+from `~/.deepagents/config.toml`. The `agents.defaults.model` value is still
+used by non-deep nanobot commands.
+
+### Required: deepagents-cli config (model/provider)
+
+Minimal example:
+
+```toml
+[models.defaults]
+model = "litellm:anthropic/claude-opus-4-5"
+
+[models.providers.litellm.params]
+api_key = "sk-..."
+```
+
+### Optional: deepagents.json (DeepAgent runtime tuning)
+
+Only needed if you want to tune DeepAgent runtime behavior. If the file is
+absent, nanobot-deep uses defaults. This file is not read by deepagents-cli.
+
+Settings you can tune here include:
+- middleware toggles (summarization, memory, prompt caching, skills, subagents)
+- summarization settings
+- task routing and delegate threshold
+- subagent definitions
+- interrupt_on behavior
+- checkpointer type/path
+- backend exec timeout/path append
+
+Example:
 
 ```json
 {
   "recursion_limit": 500,
-  "skills": ["~/.nanobot/workspace/skills"],
+  "backend": {
+    "exec_timeout": 60,
+    "path_append": ""
+  },
+  "checkpointer": {
+    "type": "sqlite",
+    "path": "~/.nanobot/sessions.db"
+  },
+  "middleware": {
+    "enable_summarization": true,
+    "enable_memory": true
+  },
+  "summarization": {
+    "enabled": true,
+    "keep_messages": 20
+  },
+  "task_routing": {
+    "delegate_threshold_tokens": 1000
+  },
   "subagents": [
     {
       "name": "reply-handler",
@@ -148,6 +233,8 @@ Create `~/.nanobot/deepagents.json`:
 
 ### LiteLLM Notes (including z.ai)
 
+These notes apply to `~/.deepagents/config.toml` model/provider settings.
+
 When using DeepAgents with the `litellm` provider in `~/.deepagents/config.toml`:
 
 - Use `zai/` model names for z.ai (for example `litellm:zai/glm-4.5`).
@@ -159,9 +246,12 @@ When using DeepAgents with the `litellm` provider in `~/.deepagents/config.toml`
 
 nanobot-deep supports Langfuse for observability and tracing of agent execution.
 
+You can configure Langfuse via environment variables or the optional
+`~/.nanobot/deepagents.json` file.
+
 ### Configuration
 
-Add to your `~/.nanobot/deepagents.json`:
+Add to the optional `~/.nanobot/deepagents.json`:
 
 ```json
 {
@@ -263,7 +353,7 @@ git commit -m "fix: resolve AsyncSqliteSaver compatibility issue"
 git commit -m "feat(memory): add conversation context middleware
 
 - Integrate deepagents memory middleware
-- Configure memory storage in deepagents.json
+- Configure memory storage in optional deepagents.json
 - Add E2E tests for context retention"
 ```
 

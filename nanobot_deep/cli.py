@@ -27,12 +27,27 @@ EXIT_COMMANDS = {"exit", "quit", "/exit", "/quit", ":q"}
 _NANOBOT_LOGO = "🤖"
 
 
+def _sync_workspace_templates(workspace: Path) -> None:
+    workspace.mkdir(parents=True, exist_ok=True)
+    try:
+        from nanobot.utils.helpers import sync_workspace_templates
+    except ImportError:
+        try:
+            from nanobot.cli.commands import _create_workspace_templates as sync_workspace_templates
+        except ImportError:
+            return
+    sync_workspace_templates(workspace)
+
+
 def _load_config(
     config_path: str | None = None,
     workspace: str | None = None,
 ):
     """Load nanobot config with optional overrides."""
-    from nanobot.config.loader import load_config, set_config_path
+    from nanobot.config import loader as config_loader
+
+    load_config = config_loader.load_config
+    set_config_path = getattr(config_loader, "set_config_path", None)
 
     cfg_path = None
     if config_path:
@@ -40,10 +55,14 @@ def _load_config(
         if not cfg_path.exists():
             console.print(f"[red]Error: Config file not found: {cfg_path}[/red]")
             raise typer.Exit(1)
-        set_config_path(cfg_path)
+        if set_config_path:
+            set_config_path(cfg_path)
         console.print(f"[dim]Using config: {cfg_path}[/dim]")
 
-    loaded = load_config(cfg_path)
+    try:
+        loaded = load_config(cfg_path)
+    except TypeError:
+        loaded = load_config()
     if workspace:
         loaded.agents.defaults.workspace = workspace
     return loaded
@@ -109,8 +128,6 @@ def gateway(
 
     This uses LangGraph-based DeepAgent instead of the LiteLLM-based AgentLoop.
     """
-    from nanobot.utils.helpers import sync_workspace_templates
-
     if verbose:
         import logging
 
@@ -123,7 +140,7 @@ def gateway(
     nanobot_config = _load_config(config, workspace)
 
     console.print(f"{_NANOBOT_LOGO} Starting nanobot-deep gateway (DeepAgent backend)...")
-    sync_workspace_templates(nanobot_config.workspace_path)
+    _sync_workspace_templates(nanobot_config.workspace_path)
 
     from nanobot_deep.gateway import run_gateway
 
@@ -154,14 +171,13 @@ def agent(
     This uses LangGraph-based DeepAgent instead of the LiteLLM-based AgentLoop.
     """
     from loguru import logger
-    from nanobot.utils.helpers import sync_workspace_templates
     from prompt_toolkit import PromptSession
     from prompt_toolkit.formatted_text import HTML
     from prompt_toolkit.history import FileHistory
     from prompt_toolkit.patch_stdout import patch_stdout
 
     nanobot_config = _load_config(config, workspace)
-    sync_workspace_templates(nanobot_config.workspace_path)
+    _sync_workspace_templates(nanobot_config.workspace_path)
 
     if logs:
         logger.enable("nanobot")
@@ -301,6 +317,12 @@ def run_nanobot():
     """Entry point that handles deep commands locally, delegates others to nanobot."""
     import sys
 
+    if len(sys.argv) > 1:
+        first_arg = sys.argv[1]
+        if first_arg in ["deep", "config", "gateway", "agent"]:
+            app()
+            return
+
     try:
         from nanobot.cli.commands import app as nanobot_app
     except ImportError:
@@ -309,12 +331,6 @@ def run_nanobot():
             fg=typer.colors.RED,
         )
         raise typer.Exit(1)
-
-    if len(sys.argv) > 1:
-        first_arg = sys.argv[1]
-        if first_arg in ["deep", "config", "gateway", "agent"]:
-            app()
-            return
 
     nanobot_app()
 

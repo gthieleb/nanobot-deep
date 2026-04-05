@@ -7,6 +7,7 @@ creating a LangGraph-based agent with nanobot-specific tools and features.
 from __future__ import annotations
 
 import asyncio
+import time
 from collections.abc import Awaitable, Callable
 from contextlib import AsyncExitStack
 from pathlib import Path
@@ -85,6 +86,8 @@ class DeepAgent:
         self.checkpointer = checkpointer
 
         self.dg_config = merge_with_nanobot_config(config, deepagents_config)
+
+        self._start_time = time.time()
 
         self._agent = None
         self._backend: BackendProtocol | None = None
@@ -358,6 +361,56 @@ Skills are available at: {self.workspace}/skills/ (read SKILL.md files as needed
             logger.warning(f"Failed to initialize Langfuse handler: {e}")
             return None
 
+    def _resolve_model_label(self) -> str:
+        try:
+            from deepagents_cli.config import ModelConfigError, create_model
+        except ImportError:
+            return "unavailable (deepagents-cli missing)"
+
+        import os
+
+        apply_deepagents_config_path()
+
+        model_spec = os.environ.get("DEEPAGENTS_TEST_MODEL") or os.environ.get("NANOBOT_TEST_MODEL")
+        extra_kwargs: dict[str, Any] = {
+            "max_tokens": self.dg_config.model.max_tokens,
+            "temperature": self.dg_config.model.temperature,
+        }
+
+        try:
+            result = create_model(model_spec=model_spec, extra_kwargs=extra_kwargs)
+        except ModelConfigError:
+            return "unconfigured (deepagents config)"
+
+        provider = result.provider or "unknown"
+        name = result.model_name or "unknown"
+        return f"{provider}:{name}"
+
+    def _build_status_content(self, session_key: str) -> str:
+        from nanobot_deep import __version__
+
+        uptime_s = int(time.time() - self._start_time)
+        uptime = (
+            f"{uptime_s // 3600}h {(uptime_s % 3600) // 60}m"
+            if uptime_s >= 3600
+            else f"{uptime_s // 60}m {uptime_s % 60}s"
+        )
+
+        history = self.get_history(session_key, limit=100)
+        session_count = len(history)
+
+        return "\n".join(
+            [
+                f"\U0001f408 nanobot-deep v{__version__}",
+                "\U0001f9ed Backend: deepagent",
+                f"\U0001f9e0 Model: {self._resolve_model_label()}",
+                "\U0001f4ca Tokens: n/a",
+                "\U0001f4da Context: n/a",
+                f"\U0001f4ac Session: {session_count} messages",
+                f"\u23f1 Uptime: {uptime}",
+            ]
+        )
+
     async def process(
         self,
         msg: "InboundMessage",
@@ -383,13 +436,24 @@ Skills are available at: {self.workspace}/skills/ (read SKILL.md files as needed
         await self._connect_mcp()
 
         content = msg.content.strip()
-        if content.startswith("/new"):
+        command = content.split()[0] if content else ""
+        command = command.split("@", 1)[0].lower() if command.startswith("/") else ""
+
+        if command == "/new":
             await self._clear_session_async(msg.session_key)
             return OutboundMessage(
                 channel=msg.channel,
                 chat_id=msg.chat_id,
                 content="New session started.",
                 metadata=msg.metadata or {},
+            )
+
+        if command == "/status":
+            return OutboundMessage(
+                channel=msg.channel,
+                chat_id=msg.chat_id,
+                content=self._build_status_content(msg.session_key),
+                metadata={"render_as": "text"},
             )
 
         should_delegate, delegate_type = self._should_delegate(msg)

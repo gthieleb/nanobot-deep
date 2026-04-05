@@ -158,6 +158,14 @@ gh issue view 12
 
 **Important:** `gh issue list` only shows title/status, but `gh issue view` includes the complete conversation thread with all comments and updates.
 
+### PR and Pipeline Status
+
+- Never guess or infer PR/CI status.
+- Always check with `gh pr view` and `gh pr checks` before reporting status.
+- If checks are running or unknown, say so explicitly.
+- Do not claim approvals or merge readiness unless verified by GitHub.
+- If you cannot check status, state that clearly instead of speculating.
+
 ### Ticket Documentation Standards
 
 **All tickets MUST be in English.**

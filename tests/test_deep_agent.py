@@ -77,7 +77,7 @@ class TestDeepAgentModelInit:
     """Tests for model initialization."""
 
     def test_model_init_from_deepagents_config(self, tmp_path):
-        """Test model initialization from deepagents config."""
+        """Test model initialization passes extra kwargs."""
         from nanobot_deep.agent.deep_agent import DeepAgent
         from nanobot_deep.config.schema import DeepAgentsConfig, DeepAgentsModelConfig
 
@@ -97,16 +97,19 @@ class TestDeepAgentModelInit:
                 deepagents_config=dg_config,
             )
 
-            with patch("langchain_litellm.ChatLiteLLM") as mock_llm:
-                agent._init_model()
-                mock_llm.assert_called_once()
-                call_kwargs = mock_llm.call_args.kwargs
-                assert call_kwargs["model"] == "openai/gpt-4"
-                assert call_kwargs["max_tokens"] == 1000
-                assert call_kwargs["temperature"] == 0.5
+            mock_result = MagicMock(model=object(), provider="test", model_name="test")
+            with patch(
+                "deepagents_cli.config.create_model", return_value=mock_result
+            ) as mock_create:
+                model = agent._init_model()
+                assert model is mock_result.model
+                mock_create.assert_called_once()
+                call_kwargs = mock_create.call_args.kwargs
+                assert call_kwargs["extra_kwargs"]["max_tokens"] == 1000
+                assert call_kwargs["extra_kwargs"]["temperature"] == 0.5
 
     def test_model_init_fallback_to_nanobot_config(self, tmp_path):
-        """Test model initialization falls back to nanobot config."""
+        """Test model initialization uses DEEPAGENTS_TEST_MODEL when set."""
         from nanobot_deep.agent.deep_agent import DeepAgent
         from nanobot_deep.config.schema import DeepAgentsConfig
 
@@ -127,15 +130,14 @@ class TestDeepAgentModelInit:
                 deepagents_config=dg_config,
             )
 
-            with patch("langchain_litellm.ChatLiteLLM") as mock_llm:
-                agent._init_model()
-                call_kwargs = mock_llm.call_args.kwargs
-                assert call_kwargs["model"] == "anthropic/claude-sonnet-4-5"
-                assert call_kwargs["api_key"] == "test-key"
-                assert call_kwargs["api_base"] == "https://api.test.com"
+            with patch("deepagents_cli.config.create_model") as mock_create:
+                with patch.dict("os.environ", {"DEEPAGENTS_TEST_MODEL": "openai:gpt-4o-mini"}):
+                    agent._init_model()
+                call_kwargs = mock_create.call_args.kwargs
+                assert call_kwargs["model_spec"] == "openai:gpt-4o-mini"
 
     def test_model_init_default_model(self, tmp_path):
-        """Test model initialization uses default when no model specified."""
+        """Test model initialization uses deepagents-cli resolver."""
         from nanobot_deep.agent.deep_agent import DeepAgent
         from nanobot_deep.config.schema import DeepAgentsConfig
 
@@ -152,10 +154,14 @@ class TestDeepAgentModelInit:
                 deepagents_config=dg_config,
             )
 
-            with patch("langchain_litellm.ChatLiteLLM") as mock_llm:
-                agent._init_model()
-                call_kwargs = mock_llm.call_args.kwargs
-                assert call_kwargs["model"] == "anthropic/claude-sonnet-4-5"
+            mock_result = MagicMock(model=object(), provider="test", model_name="test")
+            with patch(
+                "deepagents_cli.config.create_model", return_value=mock_result
+            ) as mock_create:
+                model = agent._init_model()
+                assert model is mock_result.model
+                call_kwargs = mock_create.call_args.kwargs
+                assert call_kwargs["model_spec"] is None
 
     def _create_mock_config(self, workspace_path):
         config = MagicMock()

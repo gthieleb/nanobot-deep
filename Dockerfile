@@ -12,9 +12,11 @@ RUN pip install --no-cache-dir uv
 COPY pyproject.toml README.md constraints.txt ./
 
 # Install dependencies in virtual environment
-RUN uv venv /build/.venv && \
-    . /build/.venv/bin/activate && \
-    python - <<'PY'
+RUN <<'BASH'
+set -eux
+uv venv /build/.venv
+. /build/.venv/bin/activate
+python - <<'PY'
 import tomllib
 from pathlib import Path
 
@@ -29,10 +31,10 @@ Path("/tmp/nanobot-deps.txt").write_text("\n".join(filtered))
 deepagents = next((d for d in deps if is_deepagents_cli(d)), "deepagents-cli")
 Path("/tmp/deepagents-cli-spec.txt").write_text(deepagents)
 PY
-    && xargs -r -a /tmp/nanobot-deps.txt uv pip install --no-cache -c constraints.txt \
-    && uv pip install --no-cache -e . --no-deps \
-    && uv pip install --no-cache --no-deps "$(cat /tmp/deepagents-cli-spec.txt)" \
-    && python - <<'PY'
+xargs -r -a /tmp/nanobot-deps.txt uv pip install --no-cache -c constraints.txt
+uv pip install --no-cache -e . --no-deps
+uv pip install --no-cache --no-deps "$(cat /tmp/deepagents-cli-spec.txt)"
+python - <<'PY'
 import importlib.metadata as md
 from pathlib import Path
 
@@ -46,7 +48,8 @@ for r in reqs:
 
 Path("/tmp/deepagents-cli-deps.txt").write_text("\n".join(filtered))
 PY
-    && xargs -r -a /tmp/deepagents-cli-deps.txt uv pip install --no-cache -c constraints.txt
+xargs -r -a /tmp/deepagents-cli-deps.txt uv pip install --no-cache -c constraints.txt
+BASH
 
 # Runtime stage
 FROM python:3.12-slim

@@ -1,6 +1,6 @@
 """Nanobot-deep: LangGraph/DeepAgents integration for nanobot."""
 
-__version__ = "0.1.0"
+__version__ = "0.2.0"
 
 from nanobot_deep.agent import DeepAgent, is_deepagents_available
 from nanobot_deep.langgraph import (

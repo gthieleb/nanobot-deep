@@ -48,6 +48,7 @@ class TestDeepGateway:
             gateway = DeepGateway(config, tmp_path)
 
         assert isinstance(gateway.channels.channels["telegram"], CustomTelegramChannel)
+        assert gateway.channels.channels["telegram"].transcription_api_key == "test-key"
 
     @pytest.mark.asyncio
     async def test_gateway_setup_checkpointer(self, tmp_path):

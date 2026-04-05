@@ -422,6 +422,13 @@ nodes are renamed. We capture final output based on `messages`/state output inst
 hard-coding event names to keep streaming resilient. Details in
 https://github.com/gthieleb/nanobot-deep/issues/71.
 
+### DeepAgents CLI Interactive Commands
+DeepAgents CLI supports slash commands like `/model`, `/threads`, and `/clear` in
+interactive mode. See the upstream overview for the full list:
+https://docs.langchain.com/oss/python/deepagents/cli/overview#interactive-mode.
+Telegram command routing is not implemented yet; tracked in
+https://github.com/gthieleb/nanobot-deep/issues/65.
+
 ### Code Quality
 
 ```bash

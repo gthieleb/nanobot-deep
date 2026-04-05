@@ -411,6 +411,17 @@ pytest tests/test_deepagents_config.py -v
 CI installs dependencies using `constraints.txt` to avoid resolver conflicts between
 `nanobot-ai` and `deepagents-cli`.
 
+Current pinning includes `websockets==16.0.0`. `deepagents-cli` depends on `daytona`,
+which requires `websockets<16`, so installs that include `deepagents-cli` will fail
+until upstream relaxes the constraint. Track updates in
+https://github.com/gthieleb/nanobot-deep/issues/70.
+
+### Streaming Output Notes
+`astream_events` event `name` values are runnable names and can change when graphs or
+nodes are renamed. We capture final output based on `messages`/state output instead of
+hard-coding event names to keep streaming resilient. Details in
+https://github.com/gthieleb/nanobot-deep/issues/71.
+
 ### Code Quality
 
 ```bash

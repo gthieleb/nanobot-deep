@@ -540,8 +540,9 @@ Skills are available at: {self.workspace}/skills/ (read SKILL.md files as needed
                     await on_progress(hint, True)
 
             elif kind == "on_chain_end":
-                if event.get("name") == "LangGraph":
-                    final_result = event.get("data", {}).get("output", {})
+                output = event.get("data", {}).get("output")
+                if isinstance(output, dict) and "messages" in output:
+                    final_result = output
 
         return final_result or {"messages": []}
 

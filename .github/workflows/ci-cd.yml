@@ -31,7 +31,26 @@ jobs:
         run: |
           uv venv
           . .venv/bin/activate
-          uv pip install -e ".[dev]" -c constraints.txt
+          deepagents_spec=$(python - <<'PY'
+          import tomllib
+          from pathlib import Path
+
+          data = tomllib.loads(Path("pyproject.toml").read_text())
+          deps = data["project"]["dependencies"]
+          dev = data["project"]["optional-dependencies"]["dev"]
+
+          def is_deepagents_cli(dep: str) -> bool:
+              return dep.strip().startswith("deepagents-cli")
+
+          filtered = [d for d in deps if not is_deepagents_cli(d)]
+          Path("/tmp/nanobot-deps.txt").write_text("\n".join(filtered + dev))
+          deepagents = next((d for d in deps if is_deepagents_cli(d)), "deepagents-cli")
+          print(deepagents)
+          PY
+          )
+          xargs -r -a /tmp/nanobot-deps.txt uv pip install -c constraints.txt
+          uv pip install -e ".[dev]" --no-deps
+          uv pip install --no-deps "$deepagents_spec"
 
       - name: Run tests with coverage
         run: |
@@ -68,7 +87,26 @@ jobs:
         run: |
           uv venv
           . .venv/bin/activate
-          uv pip install -e ".[dev]" -c constraints.txt
+          deepagents_spec=$(python - <<'PY'
+          import tomllib
+          from pathlib import Path
+
+          data = tomllib.loads(Path("pyproject.toml").read_text())
+          deps = data["project"]["dependencies"]
+          dev = data["project"]["optional-dependencies"]["dev"]
+
+          def is_deepagents_cli(dep: str) -> bool:
+              return dep.strip().startswith("deepagents-cli")
+
+          filtered = [d for d in deps if not is_deepagents_cli(d)]
+          Path("/tmp/nanobot-deps.txt").write_text("\n".join(filtered + dev))
+          deepagents = next((d for d in deps if is_deepagents_cli(d)), "deepagents-cli")
+          print(deepagents)
+          PY
+          )
+          xargs -r -a /tmp/nanobot-deps.txt uv pip install -c constraints.txt
+          uv pip install -e ".[dev]" --no-deps
+          uv pip install --no-deps "$deepagents_spec"
 
       - name: Run ruff check
         run: |

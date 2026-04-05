@@ -147,6 +147,8 @@ class DeepAgent:
 
     async def validate_model(self, timeout_seconds: float = 20.0) -> None:
         """Validate model reachability and existence with a lightweight call."""
+        from langchain_core.messages import HumanMessage
+
         model = self._init_model()
         model_name = self.dg_config.model.name or self.config.agents.defaults.model
 

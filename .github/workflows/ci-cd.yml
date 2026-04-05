@@ -272,7 +272,7 @@ jobs:
   docker-build-arm64:
     name: Build & Push Docker Image (arm64)
     needs: [versioning, sync_version]
-    if: needs.sync_version.outputs.version_synced == 'true' && github.ref == 'refs/heads/main'
+    if: needs.sync_version.outputs.version_synced == 'true' && github.ref == 'refs/heads/main' && vars.ARM64_RUNNER_ENABLED == 'true'
     runs-on: ubuntu-24.04-arm64
     steps:
       - uses: actions/checkout@v4
@@ -319,7 +319,7 @@ jobs:
   docker-manifest:
     name: Create Multi-Arch Docker Manifest
     needs: [docker-build-amd64, docker-build-arm64, versioning, sync_version]
-    if: needs.sync_version.outputs.version_synced == 'true' && github.ref == 'refs/heads/main'
+    if: needs.sync_version.outputs.version_synced == 'true' && github.ref == 'refs/heads/main' && vars.ARM64_RUNNER_ENABLED == 'true'
     runs-on: ubuntu-latest
     steps:
       - name: Set up Docker Buildx

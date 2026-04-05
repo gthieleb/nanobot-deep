@@ -76,8 +76,8 @@ class TestDeepAgentInit:
 class TestDeepAgentModelInit:
     """Tests for model initialization."""
 
-    def test_model_init_from_deepagents_config(self, tmp_path):
-        """Test model initialization from deepagents config."""
+    def test_model_init_uses_extra_kwargs(self, tmp_path):
+        """Test model init passes extra kwargs to deepagents CLI."""
         from nanobot_deep.agent.deep_agent import DeepAgent
         from nanobot_deep.config.schema import DeepAgentsConfig, DeepAgentsModelConfig
 
@@ -97,28 +97,27 @@ class TestDeepAgentModelInit:
                 deepagents_config=dg_config,
             )
 
-            with patch("langchain_litellm.ChatLiteLLM") as mock_llm:
-                agent._init_model()
-                mock_llm.assert_called_once()
-                call_kwargs = mock_llm.call_args.kwargs
-                assert call_kwargs["model"] == "openai/gpt-4"
-                assert call_kwargs["max_tokens"] == 1000
-                assert call_kwargs["temperature"] == 0.5
+            mock_result = MagicMock(model=object(), provider="test", model_name="test")
 
-    def test_model_init_fallback_to_nanobot_config(self, tmp_path):
-        """Test model initialization falls back to nanobot config."""
+            with patch(
+                "deepagents_cli.config.create_model", return_value=mock_result
+            ) as mock_create:
+                model = agent._init_model()
+                assert model is mock_result.model
+                mock_create.assert_called_once()
+                call_kwargs = mock_create.call_args.kwargs
+                assert call_kwargs["extra_kwargs"]["max_tokens"] == 1000
+                assert call_kwargs["extra_kwargs"]["temperature"] == 0.5
+
+    def test_model_init_uses_env_model_spec(self, tmp_path, monkeypatch):
+        """Test model init uses DEEPAGENTS_TEST_MODEL when set."""
         from nanobot_deep.agent.deep_agent import DeepAgent
         from nanobot_deep.config.schema import DeepAgentsConfig
 
         config = self._create_mock_config(tmp_path)
-        config.agents.defaults.model = "anthropic/claude-sonnet-4-5"
-
-        provider_config = MagicMock()
-        provider_config.api_key = "test-key"
-        provider_config.api_base = "https://api.test.com"
-        config.get_provider = MagicMock(return_value=provider_config)
-
         dg_config = DeepAgentsConfig()
+
+        monkeypatch.setenv("DEEPAGENTS_TEST_MODEL", "openai:gpt-4o-mini")
 
         with patch("nanobot_deep.agent.deep_agent.DEEPAGENTS_AVAILABLE", True):
             agent = DeepAgent(
@@ -127,35 +126,14 @@ class TestDeepAgentModelInit:
                 deepagents_config=dg_config,
             )
 
-            with patch("langchain_litellm.ChatLiteLLM") as mock_llm:
+            mock_result = MagicMock(model=object(), provider="test", model_name="test")
+
+            with patch(
+                "deepagents_cli.config.create_model", return_value=mock_result
+            ) as mock_create:
                 agent._init_model()
-                call_kwargs = mock_llm.call_args.kwargs
-                assert call_kwargs["model"] == "anthropic/claude-sonnet-4-5"
-                assert call_kwargs["api_key"] == "test-key"
-                assert call_kwargs["api_base"] == "https://api.test.com"
-
-    def test_model_init_default_model(self, tmp_path):
-        """Test model initialization uses default when no model specified."""
-        from nanobot_deep.agent.deep_agent import DeepAgent
-        from nanobot_deep.config.schema import DeepAgentsConfig
-
-        config = self._create_mock_config(tmp_path)
-        config.agents.defaults.model = None
-        config.get_provider = MagicMock(return_value=None)
-
-        dg_config = DeepAgentsConfig()
-
-        with patch("nanobot_deep.agent.deep_agent.DEEPAGENTS_AVAILABLE", True):
-            agent = DeepAgent(
-                workspace=tmp_path,
-                config=config,
-                deepagents_config=dg_config,
-            )
-
-            with patch("langchain_litellm.ChatLiteLLM") as mock_llm:
-                agent._init_model()
-                call_kwargs = mock_llm.call_args.kwargs
-                assert call_kwargs["model"] == "anthropic/claude-sonnet-4-5"
+                call_kwargs = mock_create.call_args.kwargs
+                assert call_kwargs["model_spec"] == "openai:gpt-4o-mini"
 
     def _create_mock_config(self, workspace_path):
         config = MagicMock()
@@ -263,8 +241,7 @@ class TestDeepAgentProcess:
             )
 
             mock_compiled = AsyncMock()
-            mock_compiled.astream_events = AsyncMock()
-            mock_compiled.astream_events.return_value = self._mock_stream_events()
+            mock_compiled.astream_events = MagicMock(return_value=self._mock_stream_events())
             agent._agent = mock_compiled
 
             msg = InboundMessage(
@@ -281,13 +258,51 @@ class TestDeepAgentProcess:
 
             await agent.process(msg, on_progress=on_progress)
 
+            assert ("streaming chunk", False) in progress_calls
+
+    @pytest.mark.asyncio
+    async def test_process_direct_streaming_callback(self, tmp_path):
+        """Test process_direct forwards streaming output."""
+        from nanobot_deep.agent.deep_agent import DeepAgent
+        from nanobot_deep.config.schema import DeepAgentsConfig
+
+        config = self._create_mock_config(tmp_path)
+        dg_config = DeepAgentsConfig()
+
+        with patch("nanobot_deep.agent.deep_agent.DEEPAGENTS_AVAILABLE", True):
+            agent = DeepAgent(
+                workspace=tmp_path,
+                config=config,
+                deepagents_config=dg_config,
+            )
+
+            mock_compiled = AsyncMock()
+            mock_compiled.astream_events = MagicMock(return_value=self._mock_stream_events())
+            agent._agent = mock_compiled
+
+            progress_calls = []
+
+            async def on_progress(text: str):
+                progress_calls.append(text)
+
+            await agent.process_direct("Hello", on_progress=on_progress)
+
+            assert "streaming chunk" in progress_calls
+
     def _mock_stream_events(self):
         """Generate mock stream events."""
 
         async def _gen():
+            class DummyChunk:
+                def __init__(self, content: str):
+                    self.content = content
+
+            yield {
+                "event": "on_chat_model_stream",
+                "data": {"chunk": DummyChunk("streaming chunk")},
+            }
             yield {
                 "event": "on_chain_end",
-                "name": "LangGraph",
                 "data": {"output": {"messages": []}},
             }
 

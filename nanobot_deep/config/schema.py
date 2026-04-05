@@ -116,7 +116,7 @@ class DeepAgentsTaskRoutingConfig(BaseConfig):
 
     auto_delegate_reply_to: bool = True
     control_commands: list[str] = Field(
-        default_factory=lambda: ["/help", "/new", "/stop", "/tasks", "/start"]
+        default_factory=lambda: ["/help", "/new", "/stop", "/status", "/tasks", "/start"]
     )
     delegate_threshold_tokens: int = 1000
 

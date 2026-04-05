@@ -117,8 +117,9 @@ def merge_with_nanobot_config(
 
     merged.recursion_limit = defaults.max_tool_iterations + 10
 
-    merged.backend.exec_timeout = nanobot_config.tools.exec.timeout
-    merged.backend.path_append = nanobot_config.tools.exec.path_append
+    exec_cfg = getattr(nanobot_config.tools, "exec", None)
+    merged.backend.exec_timeout = getattr(exec_cfg, "timeout", merged.backend.exec_timeout)
+    merged.backend.path_append = getattr(exec_cfg, "path_append", merged.backend.path_append)
     merged.backend.restrict_to_workspace = getattr(
         nanobot_config.tools, "restrict_to_workspace", False
     )

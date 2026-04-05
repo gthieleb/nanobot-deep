@@ -9,12 +9,44 @@ WORKDIR /build
 RUN pip install --no-cache-dir uv
 
 # Copy dependency files
-COPY pyproject.toml README.md ./
+COPY pyproject.toml README.md constraints.txt ./
 
 # Install dependencies in virtual environment
 RUN uv venv /build/.venv && \
     . /build/.venv/bin/activate && \
-    uv pip install --no-cache -e .
+    python - <<'PY'
+import tomllib
+from pathlib import Path
+
+data = tomllib.loads(Path("pyproject.toml").read_text())
+deps = data["project"]["dependencies"]
+
+def is_deepagents_cli(dep: str) -> bool:
+    return dep.strip().startswith("deepagents-cli")
+
+filtered = [d for d in deps if not is_deepagents_cli(d)]
+Path("/tmp/nanobot-deps.txt").write_text("\n".join(filtered))
+deepagents = next((d for d in deps if is_deepagents_cli(d)), "deepagents-cli")
+Path("/tmp/deepagents-cli-spec.txt").write_text(deepagents)
+PY
+    && xargs -r -a /tmp/nanobot-deps.txt uv pip install --no-cache -c constraints.txt \
+    && uv pip install --no-cache -e . --no-deps \
+    && uv pip install --no-cache --no-deps "$(cat /tmp/deepagents-cli-spec.txt)" \
+    && python - <<'PY'
+import importlib.metadata as md
+from pathlib import Path
+
+reqs = md.requires("deepagents-cli") or []
+filtered = []
+for r in reqs:
+    spec = r.split(";", 1)[0].strip()
+    if spec.lower().startswith("daytona"):
+        continue
+    filtered.append(spec)
+
+Path("/tmp/deepagents-cli-deps.txt").write_text("\n".join(filtered))
+PY
+    && xargs -r -a /tmp/deepagents-cli-deps.txt uv pip install --no-cache -c constraints.txt
 
 # Runtime stage
 FROM python:3.12-slim

@@ -235,7 +235,7 @@ jobs:
     steps:
       - uses: actions/checkout@v4
         with:
-          ref: ${{ github.ref == 'refs/heads/main' && 'main' || github.ref }}
+          ref: ${{ github.event_name == 'pull_request' && github.event.pull_request.head.sha || (github.ref == 'refs/heads/main' && 'main' || github.ref) }}
 
       - name: Set up Docker Buildx
         uses: docker/setup-buildx-action@v3

@@ -86,11 +86,12 @@ class DeepGateway:
         groq = getattr(providers, "groq", None)
         groq_api_key = getattr(groq, "api_key", "")
 
-        channels["telegram"] = CustomTelegramChannel(
+        custom_channel = CustomTelegramChannel(
             self.config.channels.telegram,
             self.bus,
-            groq_api_key=groq_api_key,
         )
+        custom_channel.transcription_api_key = groq_api_key
+        channels["telegram"] = custom_channel
         logger.info("Using CustomTelegramChannel for Telegram")
 
     async def _setup_checkpointer(self) -> "AsyncSqliteSaver":

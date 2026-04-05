@@ -159,6 +159,9 @@ def agent(
     session_id: str = typer.Option("cli:direct", "--session", "-s", help="Session ID"),
     workspace: str | None = typer.Option(None, "--workspace", "-w", help="Workspace directory"),
     config: str | None = typer.Option(None, "--config", "-c", help="Config file path"),
+    timeout: float | None = typer.Option(
+        None, "--timeout", "-t", help="Timeout in seconds for a single request"
+    ),
     markdown: bool = typer.Option(
         True, "--markdown/--no-markdown", help="Render assistant output as Markdown"
     ),
@@ -192,13 +195,16 @@ def agent(
     db_path = nanobot_config.workspace_path.parent / "sessions.db"
 
     deepagents_config = load_deepagents_config()
+    checkpointer_conn = None
 
     async def _create_checkpointer():
+        nonlocal checkpointer_conn
         import aiosqlite
 
         from langgraph.checkpoint.sqlite.aio import AsyncSqliteSaver
 
         conn = await aiosqlite.connect(str(db_path))
+        checkpointer_conn = conn
         checkpointer = AsyncSqliteSaver(conn)
         await checkpointer.setup()
         return checkpointer
@@ -211,6 +217,19 @@ def agent(
             checkpointer=checkpointer,
             deepagents_config=deepagents_config,
         )
+
+    async def _process_with_timeout(agent_instance: DeepAgent, *args, **kwargs) -> str:
+        if timeout is None:
+            return await agent_instance.process_direct(*args, **kwargs)
+        try:
+            return await asyncio.wait_for(
+                agent_instance.process_direct(*args, **kwargs),
+                timeout=timeout,
+            )
+        except asyncio.TimeoutError as exc:
+            raise RuntimeError(
+                f"Request timed out after {timeout:.0f}s. Retry with a higher --timeout."
+            ) from exc
 
     def _print_response(response: str) -> None:
         content = response or ""
@@ -234,14 +253,22 @@ def agent(
 
         async def run_once():
             agent_instance = await _create_agent()
-            with _thinking_ctx():
-                response = await agent_instance.process_direct(
-                    message,
-                    session_key=session_id,
-                    on_progress=_progress if not logs else None,
-                )
-            _print_response(response)
-            await agent_instance.close()
+            try:
+                with _thinking_ctx():
+                    response = await _process_with_timeout(
+                        agent_instance,
+                        message,
+                        session_key=session_id,
+                        on_progress=_progress if not logs else None,
+                    )
+                _print_response(response)
+            except RuntimeError as exc:
+                console.print(f"[red]{exc}[/red]")
+                raise typer.Exit(1)
+            finally:
+                await agent_instance.close()
+                if checkpointer_conn is not None:
+                    await checkpointer_conn.close()
 
         asyncio.run(run_once())
     else:
@@ -292,15 +319,19 @@ def agent(
                             console.print("\nGoodbye!")
                             break
 
-                        with _thinking_ctx():
-                            response = await agent_instance.process_direct(
-                                command,
-                                session_key=session_id,
-                                channel=cli_channel,
-                                chat_id=cli_chat_id,
-                                on_progress=_progress if not logs else None,
-                            )
-                        _print_response(response)
+                        try:
+                            with _thinking_ctx():
+                                response = await _process_with_timeout(
+                                    agent_instance,
+                                    command,
+                                    session_key=session_id,
+                                    channel=cli_channel,
+                                    chat_id=cli_chat_id,
+                                    on_progress=_progress if not logs else None,
+                                )
+                            _print_response(response)
+                        except RuntimeError as exc:
+                            console.print(f"[red]{exc}[/red]")
                     except KeyboardInterrupt:
                         console.print("\nGoodbye!")
                         break
@@ -309,6 +340,8 @@ def agent(
                         break
             finally:
                 await agent_instance.close()
+                if checkpointer_conn is not None:
+                    await checkpointer_conn.close()
 
         asyncio.run(run_interactive())
 

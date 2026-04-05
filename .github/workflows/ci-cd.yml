@@ -137,11 +137,11 @@ jobs:
         with:
           tag_prefix: "v"
           major_pattern: "(MAJOR)"
-          minor_pattern: "feat(\\(.+\\))?:"
+          minor_pattern: "/^feat(\\(.+\\))?:/"
           version_format: "${major}.${minor}.${patch}"
           search_commit_body: true
           bump_each_commit: true
-          bump_each_commit_patch_pattern: "fix(\\(.+\\))?:"
+          bump_each_commit_patch_pattern: "/^fix(\\(.+\\))?:/"
           user_format_type: "csv"
 
       - name: Check if prerelease

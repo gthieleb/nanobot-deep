@@ -293,7 +293,9 @@ Langfuse is **only for tracing/observability** — it does NOT provide model or
 provider settings. Model/provider config comes from `~/.deepagents/config.toml`.
 
 You can configure Langfuse via environment variables or the optional
-`~/.nanobot/deepagents.json` file.
+`~/.nanobot/deepagents.json` file. Note: `nanobot onboard` does not support
+Langfuse configuration — edit `~/.nanobot/deepagents.json` manually after
+running onboard.
 
 ### Configuration
 

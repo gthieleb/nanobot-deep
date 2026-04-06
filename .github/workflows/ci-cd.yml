@@ -272,12 +272,12 @@ jobs:
   docker-build-arm64:
     name: Build & Push Docker Image (arm64)
     needs: [versioning, sync_version]
-    if: needs.sync_version.outputs.version_synced == 'true' && github.ref == 'refs/heads/main' && vars.ARM64_RUNNER_ENABLED == 'true'
-    runs-on: ubuntu-24.04-arm64
+    if: needs.sync_version.outputs.version_synced == 'true'
+    runs-on: ubuntu-24.04-arm
     steps:
       - uses: actions/checkout@v4
         with:
-          ref: main
+          ref: ${{ github.event_name == 'pull_request' && github.event.pull_request.head.sha || (github.ref == 'refs/heads/main' && 'main' || github.ref) }}
 
       - name: Set up Docker Buildx
         uses: docker/setup-buildx-action@v3
@@ -300,7 +300,12 @@ jobs:
           REPO="ghcr.io/${{ steps.repo.outputs.name }}"
           ARCH="arm64"
 
-          echo "tags=${REPO}:${VERSION}-${ARCH},${REPO}:latest-${ARCH}" >> $GITHUB_OUTPUT
+          if [[ "${{ github.ref }}" == "refs/heads/main" ]]; then
+            echo "tags=${REPO}:${VERSION}-${ARCH},${REPO}:latest-${ARCH}" >> $GITHUB_OUTPUT
+          else
+            BRANCH=$(echo "${{ github.head_ref || github.ref_name }}" | sed 's/[^a-zA-Z0-9._-]/-/g')
+            echo "tags=${REPO}:${VERSION}-${ARCH},${REPO}:${BRANCH}-${ARCH}" >> $GITHUB_OUTPUT
+          fi
 
       - name: Build and push
         uses: docker/build-push-action@v5
@@ -319,7 +324,7 @@ jobs:
   docker-manifest:
     name: Create Multi-Arch Docker Manifest
     needs: [docker-build-amd64, docker-build-arm64, versioning, sync_version]
-    if: needs.sync_version.outputs.version_synced == 'true' && github.ref == 'refs/heads/main' && vars.ARM64_RUNNER_ENABLED == 'true'
+    if: needs.sync_version.outputs.version_synced == 'true' && github.ref == 'refs/heads/main'
     runs-on: ubuntu-latest
     steps:
       - name: Set up Docker Buildx

@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 from types import SimpleNamespace
+from unittest.mock import MagicMock, patch
 import pytest
 
 from nanobot_deep.agent.deep_agent import DeepAgent
@@ -58,16 +59,19 @@ def test_unknown_error_keeps_detail() -> None:
 
 @pytest.mark.asyncio
 async def test_validate_model_raises_for_invalid_provider_model() -> None:
-    class FakeModel:
-        async def ainvoke(self, *_args, **_kwargs):
-            raise Exception("Model not found")
+    from unittest.mock import AsyncMock
 
     agent = object.__new__(DeepAgent)
-    agent.dg_config = SimpleNamespace(model=SimpleNamespace(name="openai/not-a-real-model"))
+    agent.dg_config = SimpleNamespace(
+        model=SimpleNamespace(name="openai/not-a-real-model", max_tokens=2000, temperature=0.1)
+    )
     agent.config = SimpleNamespace(
         agents=SimpleNamespace(defaults=SimpleNamespace(model="gpt-5-mini"))
     )
-    agent._init_model = lambda: FakeModel()
 
-    with pytest.raises(RuntimeError, match="Model validation failed"):
-        await agent.validate_model(timeout_seconds=0.1)
+    fake_model = MagicMock()
+    fake_model.ainvoke = AsyncMock(side_effect=Exception("Model not found"))
+
+    with patch("nanobot_deep.agent.factory._init_model", return_value=(fake_model, MagicMock())):
+        with pytest.raises(RuntimeError, match="Model validation failed"):
+            await agent.validate_model(timeout_seconds=0.1)

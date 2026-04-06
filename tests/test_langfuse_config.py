@@ -117,15 +117,13 @@ class TestLangfuseHandlerCreation:
             config = DeepAgentsConfig(langfuse=DeepAgentsLangfuseConfig(enabled=False))
 
             with patch.object(DeepAgent, "_create_agent"):
-                with patch.object(DeepAgent, "_init_model"):
-                    with patch.object(DeepAgent, "_init_backend"):
-                        agent = DeepAgent(
-                            workspace=Path("/tmp/test"),
-                            config=mock_config,
-                            deepagents_config=config,
-                        )
-                        handler = agent._get_langfuse_handler()
-                        assert handler is None
+                agent = DeepAgent(
+                    workspace=Path("/tmp/test"),
+                    config=mock_config,
+                    deepagents_config=config,
+                )
+                handler = agent._get_langfuse_handler()
+                assert handler is None
 
     def test_handler_not_created_without_credentials(self, mock_config):
         """Test handler is not created when credentials are missing."""
@@ -135,15 +133,13 @@ class TestLangfuseHandlerCreation:
             config = DeepAgentsConfig(langfuse=DeepAgentsLangfuseConfig(enabled=True))
 
             with patch.object(DeepAgent, "_create_agent"):
-                with patch.object(DeepAgent, "_init_model"):
-                    with patch.object(DeepAgent, "_init_backend"):
-                        agent = DeepAgent(
-                            workspace=Path("/tmp/test"),
-                            config=mock_config,
-                            deepagents_config=config,
-                        )
-                        handler = agent._get_langfuse_handler()
-                        assert handler is None
+                agent = DeepAgent(
+                    workspace=Path("/tmp/test"),
+                    config=mock_config,
+                    deepagents_config=config,
+                )
+                handler = agent._get_langfuse_handler()
+                assert handler is None
 
     def test_handler_uses_env_vars(self, mock_config):
         """Test handler uses environment variables when config is missing."""
@@ -161,24 +157,22 @@ class TestLangfuseHandlerCreation:
             config = DeepAgentsConfig(langfuse=DeepAgentsLangfuseConfig(enabled=True))
 
             with patch.object(DeepAgent, "_create_agent"):
-                with patch.object(DeepAgent, "_init_model"):
-                    with patch.object(DeepAgent, "_init_backend"):
-                        with patch("nanobot_deep.agent.deep_agent.LANGFUSE_AVAILABLE", True):
-                            with patch(
-                                "nanobot_deep.agent.deep_agent.LangfuseCallbackHandler"
-                            ) as mock_handler:
-                                mock_handler.return_value = MagicMock()
-                                agent = DeepAgent(
-                                    workspace=Path("/tmp/test"),
-                                    config=mock_config,
-                                    deepagents_config=config,
-                                )
-                                agent._get_langfuse_handler()
-                                mock_handler.assert_called_once()
-                                call_kwargs = mock_handler.call_args[1]
-                                assert call_kwargs["public_key"] == "pk-env"
-                                assert call_kwargs["secret_key"] == "sk-env"
-                                assert call_kwargs["host"] == "http://env-host:3000"
+                with patch("nanobot_deep.agent.deep_agent.LANGFUSE_AVAILABLE", True):
+                    with patch(
+                        "nanobot_deep.agent.deep_agent.LangfuseCallbackHandler"
+                    ) as mock_handler:
+                        mock_handler.return_value = MagicMock()
+                        agent = DeepAgent(
+                            workspace=Path("/tmp/test"),
+                            config=mock_config,
+                            deepagents_config=config,
+                        )
+                        agent._get_langfuse_handler()
+                        mock_handler.assert_called_once()
+                        call_kwargs = mock_handler.call_args[1]
+                        assert call_kwargs["public_key"] == "pk-env"
+                        assert call_kwargs["secret_key"] == "sk-env"
+                        assert call_kwargs["host"] == "http://env-host:3000"
 
     def test_handler_not_created_when_langfuse_not_available(self, mock_config):
         """Test handler is None when langfuse package is not installed."""
@@ -195,12 +189,10 @@ class TestLangfuseHandlerCreation:
                 )
 
                 with patch.object(DeepAgent, "_create_agent"):
-                    with patch.object(DeepAgent, "_init_model"):
-                        with patch.object(DeepAgent, "_init_backend"):
-                            agent = DeepAgent(
-                                workspace=Path("/tmp/test"),
-                                config=mock_config,
-                                deepagents_config=config,
-                            )
-                            handler = agent._get_langfuse_handler()
-                            assert handler is None
+                    agent = DeepAgent(
+                        workspace=Path("/tmp/test"),
+                        config=mock_config,
+                        deepagents_config=config,
+                    )
+                    handler = agent._get_langfuse_handler()
+                    assert handler is None

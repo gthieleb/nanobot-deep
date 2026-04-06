@@ -14,12 +14,11 @@ class TestDeepAgentInit:
     def test_init_without_deepagents_raises(self, tmp_path):
         """Test that initialization fails without deepagents installed."""
         with patch("nanobot_deep.agent.deep_agent.DEEPAGENTS_AVAILABLE", False):
-            with patch("nanobot_deep.agent.deep_agent.create_deep_agent", None):
-                from nanobot_deep.agent.deep_agent import DeepAgent
+            from nanobot_deep.agent.deep_agent import DeepAgent
 
-                config = self._create_mock_config(tmp_path)
-                with pytest.raises(ImportError, match="deepagents is not installed"):
-                    DeepAgent(workspace=tmp_path, config=config)
+            config = self._create_mock_config(tmp_path)
+            with pytest.raises(ImportError, match="deepagents is not installed"):
+                DeepAgent(workspace=tmp_path, config=config)
 
     def test_init_with_valid_config(self, tmp_path):
         """Test successful initialization with valid config."""
@@ -74,11 +73,11 @@ class TestDeepAgentInit:
 
 
 class TestDeepAgentModelInit:
-    """Tests for model initialization."""
+    """Tests for model initialization via factory."""
 
     def test_model_init_uses_extra_kwargs(self, tmp_path):
         """Test model init passes extra kwargs to deepagents CLI."""
-        from nanobot_deep.agent.deep_agent import DeepAgent
+        from nanobot_deep.agent.factory import _init_model
         from nanobot_deep.config.schema import DeepAgentsConfig, DeepAgentsModelConfig
 
         config = self._create_mock_config(tmp_path)
@@ -90,28 +89,21 @@ class TestDeepAgentModelInit:
             )
         )
 
-        with patch("nanobot_deep.agent.deep_agent.DEEPAGENTS_AVAILABLE", True):
-            agent = DeepAgent(
-                workspace=tmp_path,
-                config=config,
-                deepagents_config=dg_config,
-            )
+        mock_result = MagicMock(model=object(), provider="test", model_name="test")
 
-            mock_result = MagicMock(model=object(), provider="test", model_name="test")
-
-            with patch(
-                "deepagents_cli.config.create_model", return_value=mock_result
-            ) as mock_create:
-                model = agent._init_model()
-                assert model is mock_result.model
-                mock_create.assert_called_once()
-                call_kwargs = mock_create.call_args.kwargs
-                assert call_kwargs["extra_kwargs"]["max_tokens"] == 1000
-                assert call_kwargs["extra_kwargs"]["temperature"] == 0.5
+        with patch(
+            "nanobot_deep.agent.factory.create_model", return_value=mock_result
+        ) as mock_create:
+            model, result = _init_model(dg_config)
+            assert model is mock_result.model
+            mock_create.assert_called_once()
+            call_kwargs = mock_create.call_args.kwargs
+            assert call_kwargs["extra_kwargs"]["max_tokens"] == 1000
+            assert call_kwargs["extra_kwargs"]["temperature"] == 0.5
 
     def test_model_init_uses_env_model_spec(self, tmp_path, monkeypatch):
         """Test model init uses DEEPAGENTS_TEST_MODEL when set."""
-        from nanobot_deep.agent.deep_agent import DeepAgent
+        from nanobot_deep.agent.factory import _init_model
         from nanobot_deep.config.schema import DeepAgentsConfig
 
         config = self._create_mock_config(tmp_path)
@@ -119,21 +111,14 @@ class TestDeepAgentModelInit:
 
         monkeypatch.setenv("DEEPAGENTS_TEST_MODEL", "openai:gpt-4o-mini")
 
-        with patch("nanobot_deep.agent.deep_agent.DEEPAGENTS_AVAILABLE", True):
-            agent = DeepAgent(
-                workspace=tmp_path,
-                config=config,
-                deepagents_config=dg_config,
-            )
+        mock_result = MagicMock(model=object(), provider="test", model_name="test")
 
-            mock_result = MagicMock(model=object(), provider="test", model_name="test")
-
-            with patch(
-                "deepagents_cli.config.create_model", return_value=mock_result
-            ) as mock_create:
-                agent._init_model()
-                call_kwargs = mock_create.call_args.kwargs
-                assert call_kwargs["model_spec"] == "openai:gpt-4o-mini"
+        with patch(
+            "nanobot_deep.agent.factory.create_model", return_value=mock_result
+        ) as mock_create:
+            _init_model(dg_config)
+            call_kwargs = mock_create.call_args.kwargs
+            assert call_kwargs["model_spec"] == "openai:gpt-4o-mini"
 
     def _create_mock_config(self, workspace_path):
         config = MagicMock()
@@ -428,7 +413,7 @@ class TestDeepAgentMcp:
             await agent._connect_mcp()
 
             assert agent._mcp_connected is True
-            assert agent._tools == []
+            assert agent._mcp_tools == []
 
     def _create_mock_config(self, workspace_path):
         config = MagicMock()

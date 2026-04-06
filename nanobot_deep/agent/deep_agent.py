@@ -14,29 +14,24 @@ from typing import TYPE_CHECKING, Any
 
 from loguru import logger
 
-from nanobot_deep.config.deepagents_cli import apply_deepagents_config_path
+from nanobot_deep.agent.factory import create_nanobot_agent
 from nanobot_deep.config.loader import merge_with_nanobot_config
 from nanobot_deep.config.schema import DeepAgentsConfig
 from nanobot_deep.langgraph.bridge import (
     extract_reply_context,
     should_delegate_task,
 )
-from nanobot_deep.langgraph.middleware import FlattenContentBlocksMiddleware
 
 if TYPE_CHECKING:
     from nanobot.bus.events import InboundMessage, OutboundMessage
     from nanobot.config.schema import Config
 
 try:
-    from deepagents import create_deep_agent
-    from deepagents.backends import FilesystemBackend, StateBackend
     from deepagents.backends.protocol import BackendProtocol
-    from deepagents.middleware.subagents import GENERAL_PURPOSE_SUBAGENT
 
     DEEPAGENTS_AVAILABLE = True
 except ImportError:
     DEEPAGENTS_AVAILABLE = False
-    create_deep_agent = None
 
 try:
     from langfuse.langchain import CallbackHandler as LangfuseCallbackHandler
@@ -50,8 +45,8 @@ except ImportError:
 class DeepAgent:
     """LangGraph-based agent using deepagents framework.
 
-    This class wraps deepagents' create_deep_agent() to provide:
-    - File operations via FilesystemBackend
+    This class uses the factory pattern to create a deepagents agent:
+    - File operations via FilesystemBackend or LocalShellBackend
     - Subagent spawning via task tool
     - Session checkpointing
     - Multi-channel message routing
@@ -92,72 +87,22 @@ class DeepAgent:
 
         self._start_time = time.time()
 
-        self._agent = None
+        self._agent: Any | None = None
         self._backend: BackendProtocol | None = None
-        self._tools: list[Any] = []
         self._mcp_session_manager: Any | None = None
         self._mcp_server_infos: list[Any] = []
+        self._mcp_tools: list[Any] = []
         self._mcp_connected = False
         self._mcp_config_path = mcp_config_path
         self._no_mcp = no_mcp
-
-    def _init_model(self) -> Any:
-        """Initialize model from DeepAgents CLI configuration.
-
-        Model/provider resolution is delegated to `deepagents_cli.config.create_model`
-        using `~/.deepagents/config.toml` or `DEEPAGENTS_CONFIG_PATH`.
-        """
-        try:
-            from deepagents_cli.config import ModelConfigError, create_model
-        except ImportError as e:
-            raise ImportError(
-                "deepagents-cli is required for model resolution. Install with: pip install deepagents-cli"
-            ) from e
-        import os
-
-        apply_deepagents_config_path()
-
-        if (
-            self.dg_config.model.name
-            or self.dg_config.model.api_key
-            or self.dg_config.model.api_base
-        ):
-            logger.warning(
-                "deepagents.json model.* fields are ignored for model/provider resolution; "
-                "configure ~/.deepagents/config.toml (or set DEEPAGENTS_CONFIG_PATH) instead"
-            )
-
-        extra_kwargs: dict[str, Any] = {
-            "max_tokens": self.dg_config.model.max_tokens,
-            "temperature": self.dg_config.model.temperature,
-        }
-        model_spec = (
-            os.environ.get("DEEPAGENTS_TEST_MODEL") or os.environ.get("NANOBOT_TEST_MODEL") or None
-        )
-
-        try:
-            result = create_model(model_spec=model_spec, extra_kwargs=extra_kwargs)
-        except ModelConfigError as e:
-            msg = (
-                "DeepAgents model configuration error. Configure provider/model in "
-                "~/.deepagents/config.toml (or set DEEPAGENTS_CONFIG_PATH, or set provider "
-                "credentials env vars), "
-                f"then retry. Original error: {e}"
-            )
-            raise RuntimeError(msg) from e
-
-        logger.info(
-            "Initialized DeepAgents model provider={} model={}",
-            result.provider,
-            result.model_name,
-        )
-        return result.model
 
     async def validate_model(self, timeout_seconds: float = 20.0) -> None:
         """Validate model reachability and existence with a lightweight call."""
         from langchain_core.messages import HumanMessage
 
-        model = self._init_model()
+        from nanobot_deep.agent.factory import _init_model
+
+        model, _ = _init_model(self.dg_config)
         model_name = self.dg_config.model.name or self.config.agents.defaults.model
 
         try:
@@ -170,82 +115,24 @@ class DeepAgent:
             logger.error(f"Model validation failed for {model_name}: {e}")
             raise RuntimeError(f"Model validation failed for {model_name}: {e}") from e
 
-    def _init_backend(self) -> BackendProtocol:
-        """Get or create the backend for file operations."""
-        if self._backend is None:
-            self._backend = FilesystemBackend(root_dir=self.workspace)
-        return self._backend
-
-    def _build_custom_tools(self) -> list[Any]:
-        """Build nanobot-specific custom tools."""
-        tools = []
-
-        return tools
-
     def _create_agent(self) -> Any:
-        """Create the deep agent with configured middleware."""
-        model = self._init_model()
-        backend = self._init_backend()
-        custom_tools = self._build_custom_tools()
-
-        system_prompt = self._build_system_prompt()
-
-        custom_middleware: list[Any] = []
-        subagents = None
-        if self.dg_config.middleware.enable_flatten_content_blocks:
-            custom_middleware.append(FlattenContentBlocksMiddleware())
-            subagents = [
-                {
-                    **GENERAL_PURPOSE_SUBAGENT,
-                    "middleware": [FlattenContentBlocksMiddleware()],
-                }
-            ]
-
-        agent = create_deep_agent(
-            model=model,
-            tools=[*custom_tools, *self._tools],
-            system_prompt=system_prompt,
-            backend=backend,
+        """Create the deep agent using the factory."""
+        agent, backend, mcp_info = create_nanobot_agent(
+            workspace=self.workspace,
+            nanobot_config=self.config,
+            deepagents_config=self.dg_config,
             checkpointer=self.checkpointer,
-            skills=self.dg_config.get_skills_paths(self.workspace),
-            memory=self.dg_config.get_memory_paths(self.workspace),
-            middleware=custom_middleware,
-            subagents=subagents,
-            interrupt_on=self.dg_config.get_interrupt_on_config()
-            if any(self.dg_config.get_interrupt_on_config().values())
-            else None,
-            debug=self.dg_config.debug,
-            name=self.dg_config.name,
+            mcp_config_path=self._mcp_config_path,
+            no_mcp=self._no_mcp,
         )
 
-        return agent.with_config({"recursion_limit": self.dg_config.recursion_limit})
+        self._backend = backend
+        self._mcp_session_manager = mcp_info.get("session_manager")
+        self._mcp_server_infos = mcp_info.get("server_infos", [])
+        self._mcp_tools = mcp_info.get("tools", [])
+        self._mcp_connected = True
 
-    def _build_system_prompt(self) -> str:
-        """Build system prompt with nanobot context."""
-        import time
-        from datetime import datetime
-
-        now = datetime.now().strftime("%Y-%m-%d %H:%M (%A)")
-        tz = time.strftime("%Z") or "UTC"
-
-        return f"""# nanobot Agent
-
-## Current Time
-{now} ({tz})
-
-## Workspace
-Your workspace is at: {self.workspace}
-
-## Skills
-Skills are available at: {self.workspace}/skills/ (read SKILL.md files as needed)
-
-## Behavior
-- Be concise and direct. Don't over-explain unless asked.
-- NEVER add unnecessary preamble ("Sure!", "Great question!", "I'll now...").
-- When doing tasks: understand first, act, then verify.
-- Keep working until the task is fully complete.
-- Use the task tool to delegate complex, multi-step tasks to subagents.
-"""
+        return agent
 
     @property
     def agent(self) -> Any:
@@ -258,38 +145,33 @@ Skills are available at: {self.workspace}/skills/ (read SKILL.md files as needed
         """Connect to configured MCP servers."""
         if self._mcp_connected:
             return
+
         if self._no_mcp:
             self._mcp_connected = True
             return
 
+        from nanobot_deep.agent.factory import _load_mcp_tools
+
         try:
-            from deepagents_cli.mcp_tools import resolve_and_load_mcp_tools
             from deepagents_cli.project_utils import ProjectContext
         except ImportError:
             logger.warning("deepagents-cli not installed, skipping MCP")
             self._mcp_connected = True
             return
 
-        try:
-            project_context = ProjectContext.from_user_cwd(self.workspace)
-            tools, session_manager, server_infos = await resolve_and_load_mcp_tools(
-                explicit_config_path=self._mcp_config_path,
-                no_mcp=self._no_mcp,
-                project_context=project_context,
-            )
-            self._mcp_session_manager = session_manager
-            self._mcp_server_infos = server_infos
-            if tools:
-                self._tools = tools
-                self._agent = None
-                logger.info(
-                    "Loaded {} MCP tools from {} server(s)",
-                    len(tools),
-                    len(server_infos),
-                )
-            self._mcp_connected = True
-        except Exception as e:
-            logger.error(f"Failed to connect MCP servers: {e}")
+        project_context = ProjectContext.from_user_cwd(self.workspace)
+        tools, session_manager, server_infos = await _load_mcp_tools(
+            self._mcp_config_path,
+            self._no_mcp,
+            project_context,
+        )
+
+        self._mcp_session_manager = session_manager
+        self._mcp_server_infos = server_infos
+        if tools:
+            self._mcp_tools = tools
+            self._agent = None
+        self._mcp_connected = True
 
     def _should_delegate(self, msg: "InboundMessage") -> tuple[bool, str]:
         """Determine if message should be delegated to a subagent.
@@ -382,6 +264,8 @@ Skills are available at: {self.workspace}/skills/ (read SKILL.md files as needed
             return "unavailable (deepagents-cli missing)"
 
         import os
+
+        from nanobot_deep.config.deepagents_cli import apply_deepagents_config_path
 
         apply_deepagents_config_path()
 
@@ -721,7 +605,7 @@ Skills are available at: {self.workspace}/skills/ (read SKILL.md files as needed
                 pass
             self._mcp_session_manager = None
         self._mcp_connected = False
-        self._tools = []
+        self._mcp_tools = []
         self._mcp_server_infos = []
 
 

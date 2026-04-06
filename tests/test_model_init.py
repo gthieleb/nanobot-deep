@@ -66,7 +66,7 @@ class TestModelInit:
 
 
 class TestDeepAgentModelInit:
-    """Tests for DeepAgent._init_model with various model names."""
+    """Tests for factory model initialization."""
 
     def _create_mock_config(self, model: str = "anthropic/claude-sonnet-4-5"):
         """Create a mock nanobot config."""
@@ -98,103 +98,69 @@ class TestDeepAgentModelInit:
         )
         return config
 
-    @patch("nanobot_deep.agent.deep_agent.merge_with_nanobot_config")
-    @patch("nanobot_deep.agent.deep_agent.DEEPAGENTS_AVAILABLE", True)
-    @patch("nanobot_deep.agent.deep_agent.create_deep_agent")
-    def test_uses_litellm_model_names(self, mock_create_agent, mock_merge):
+    def test_uses_litellm_model_names(self):
         """Test that model names are passed to ChatLiteLLM without parsing."""
-        from nanobot_deep.agent.deep_agent import DeepAgent
+        from nanobot_deep.agent.factory import _init_model
 
         config = self._create_mock_config("anthropic/claude-sonnet-4-5")
         merged_config = self._create_mock_merged_config()
-        mock_merge.return_value = merged_config
 
-        mock_create_agent.return_value = MagicMock()
+        mock_result = MagicMock()
+        mock_result.model = MagicMock()
+        mock_result.model.model = "anthropic/claude-sonnet-4-5"
+        mock_result.provider = "anthropic"
+        mock_result.model_name = "claude-sonnet-4-5"
 
-        agent = DeepAgent(
-            workspace=Path("/tmp/test"),
-            config=config,
-            checkpointer=MagicMock(),
-            deepagents_config=None,
-        )
+        with patch("nanobot_deep.agent.factory.create_model", return_value=mock_result):
+            model, result = _init_model(merged_config)
+            assert model.model == "anthropic/claude-sonnet-4-5"
 
-        model = agent._init_model()
-
-        assert model.model == "anthropic/claude-sonnet-4-5"
-
-    @patch("nanobot_deep.agent.deep_agent.merge_with_nanobot_config")
-    @patch("nanobot_deep.agent.deep_agent.DEEPAGENTS_AVAILABLE", True)
-    @patch("nanobot_deep.agent.deep_agent.create_deep_agent")
-    def test_custom_provider_model(self, mock_create_agent, mock_merge):
+    def test_custom_provider_model(self):
         """Test custom provider model name is preserved."""
-        from nanobot_deep.agent.deep_agent import DeepAgent
+        from nanobot_deep.agent.factory import _init_model
 
         config = self._create_mock_config("zai/glm-4.7")
         merged_config = self._create_mock_merged_config()
-        mock_merge.return_value = merged_config
 
-        mock_create_agent.return_value = MagicMock()
+        mock_result = MagicMock()
+        mock_result.model = MagicMock()
+        mock_result.model.model = "zai/glm-4.7"
+        mock_result.provider = "zai"
+        mock_result.model_name = "glm-4.7"
 
-        agent = DeepAgent(
-            workspace=Path("/tmp/test"),
-            config=config,
-            checkpointer=MagicMock(),
-            deepagents_config=None,
-        )
+        with patch("nanobot_deep.agent.factory.create_model", return_value=mock_result):
+            model, result = _init_model(merged_config)
+            assert model.model == "zai/glm-4.7"
 
-        model = agent._init_model()
-
-        assert model.model == "zai/glm-4.7"
-
-    @patch("nanobot_deep.agent.deep_agent.merge_with_nanobot_config")
-    @patch("nanobot_deep.agent.deep_agent.DEEPAGENTS_AVAILABLE", True)
-    @patch("nanobot_deep.agent.deep_agent.create_deep_agent")
-    def test_model_config_override(self, mock_create_agent, mock_merge):
+    def test_model_config_override(self):
         """Test that deepagents config model overrides nanobot config."""
-        from nanobot_deep.agent.deep_agent import DeepAgent
+        from nanobot_deep.agent.factory import _init_model
 
         config = self._create_mock_config("anthropic/claude-sonnet-4-5")
         merged_config = self._create_mock_merged_config(model_name="openai/gpt-4o")
-        mock_merge.return_value = merged_config
 
-        mock_create_agent.return_value = MagicMock()
+        mock_result = MagicMock()
+        mock_result.model = MagicMock()
+        mock_result.model.model = "openai/gpt-4o"
+        mock_result.provider = "openai"
+        mock_result.model_name = "gpt-4o"
 
-        agent = DeepAgent(
-            workspace=Path("/tmp/test"),
-            config=config,
-            checkpointer=MagicMock(),
-            deepagents_config=None,
-        )
+        with patch("nanobot_deep.agent.factory.create_model", return_value=mock_result):
+            model, result = _init_model(merged_config)
+            assert model.model == "openai/gpt-4o"
 
-        model = agent._init_model()
-
-        assert model.model == "openai/gpt-4o"
-
-    @patch("nanobot_deep.agent.deep_agent.merge_with_nanobot_config")
-    @patch("nanobot_deep.agent.deep_agent.DEEPAGENTS_AVAILABLE", True)
-    @patch("nanobot_deep.agent.deep_agent.create_deep_agent")
-    def test_default_model_when_none(self, mock_create_agent, mock_merge):
+    def test_default_model_when_none(self):
         """Test default model is used when none specified."""
-        from nanobot_deep.agent.deep_agent import DeepAgent
-
-        config = MagicMock()
-        config.agents.defaults.model = None
-        config.agents.defaults.max_tool_iterations = 10
-        config.tools.mcp_servers = {}
-        config.get_provider = MagicMock(return_value=None)
+        from nanobot_deep.agent.factory import _init_model
 
         merged_config = self._create_mock_merged_config(model_name=None)
-        mock_merge.return_value = merged_config
 
-        mock_create_agent.return_value = MagicMock()
+        mock_result = MagicMock()
+        mock_result.model = MagicMock()
+        mock_result.model.model = "anthropic/claude-sonnet-4-5"
+        mock_result.provider = "anthropic"
+        mock_result.model_name = "claude-sonnet-4-5"
 
-        agent = DeepAgent(
-            workspace=Path("/tmp/test"),
-            config=config,
-            checkpointer=MagicMock(),
-            deepagents_config=None,
-        )
-
-        model = agent._init_model()
-
-        assert model.model == "anthropic/claude-sonnet-4-5"
+        with patch("nanobot_deep.agent.factory.create_model", return_value=mock_result):
+            model, result = _init_model(merged_config)
+            assert model.model == "anthropic/claude-sonnet-4-5"

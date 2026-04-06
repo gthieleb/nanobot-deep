@@ -44,6 +44,7 @@ def pytest_configure(config):
     """Register custom markers."""
     config.addinivalue_line("markers", "live: tests that require real LLM API key (expensive)")
     config.addinivalue_line("markers", "slow: tests that take more than 60 seconds")
+    config.addinivalue_line("markers", "langfuse: tests that require Langfuse instance")
 
 
 @pytest.fixture
@@ -149,6 +150,7 @@ async def live_gateway(
         - agent: DeepAgent instance
         - provider: DeepAgents provider name
     """
+    from nanobot.agent.loop import AgentLoop
     from nanobot.bus.queue import MessageBus
     from nanobot_deep.agent.deep_agent import DeepAgent
 
@@ -211,6 +213,7 @@ async def live_gateway_no_cancel(
     live_model_result,
 ):
     """Start DeepAgent gateway without auto-cancellation."""
+    from nanobot.agent.loop import AgentLoop
     from nanobot.bus.queue import MessageBus
     from nanobot_deep.agent.deep_agent import DeepAgent
 
@@ -302,7 +305,7 @@ async def send_and_wait():
         chat_id: str = "chat1",
         timeout: float = 60.0,
     ):
-        from nanobot.bus.events import InboundMessage, OutboundMessage
+        from nanobot.bus.events import InboundMessage
 
         await bus.publish_inbound(
             InboundMessage(

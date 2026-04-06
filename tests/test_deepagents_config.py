@@ -13,23 +13,21 @@ import json
 from pathlib import Path
 from unittest.mock import MagicMock, patch
 
-import pytest
-
+from nanobot_deep.config.loader import (
+    _deep_merge,
+    get_deepagents_config_path,
+    load_deepagents_config,
+    merge_with_nanobot_config,
+    save_deepagents_config,
+)
 from nanobot_deep.config.schema import (
-    DeepAgentsConfig,
-    DeepAgentsInterruptConfig,
     DeepAgentsBackendConfig,
     DeepAgentsCheckpointerConfig,
-    DeepAgentsSummarizationConfig,
+    DeepAgentsConfig,
+    DeepAgentsInterruptConfig,
     DeepAgentsMiddlewareConfig,
     DeepAgentsSubagentConfig,
-)
-from nanobot_deep.config.loader import (
-    load_deepagents_config,
-    save_deepagents_config,
-    merge_with_nanobot_config,
-    get_deepagents_config_path,
-    _deep_merge,
+    DeepAgentsSummarizationConfig,
 )
 
 

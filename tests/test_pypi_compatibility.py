@@ -12,13 +12,12 @@ from unittest.mock import MagicMock, patch
 
 import pytest
 
+from nanobot_deep.config.loader import (
+    load_deepagents_config,
+    merge_with_nanobot_config,
+)
 from nanobot_deep.config.schema import (
     DeepAgentsConfig,
-    DeepAgentsBackendConfig,
-)
-from nanobot_deep.config.loader import (
-    merge_with_nanobot_config,
-    load_deepagents_config,
 )
 
 

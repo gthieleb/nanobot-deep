@@ -2,12 +2,9 @@
 
 from __future__ import annotations
 
-import asyncio
 from pathlib import Path
-from typing import Any
 
 from rich.console import Console
-from loguru import logger
 
 from nanobot_deep.config.deepagents_cli import apply_deepagents_config_path
 from nanobot_deep.langgraph.middleware import FlattenContentBlocksMiddleware
@@ -38,7 +35,7 @@ async def run_ralph_mode(
     try:
         from deepagents import create_deep_agent
         from deepagents.backends import FilesystemBackend
-        from deepagents.backends.protocol import BackendProtocol, BackendFactory
+        from deepagents.backends.protocol import BackendFactory, BackendProtocol
         from deepagents.middleware.subagents import GENERAL_PURPOSE_SUBAGENT
     except ImportError as e:
         raise ImportError(

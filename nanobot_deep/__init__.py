@@ -3,6 +3,12 @@
 __version__ = "0.9.1"
 
 from nanobot_deep.agent import DeepAgent, is_deepagents_available
+from nanobot_deep.config.loader import (
+    load_deepagents_config,
+    merge_with_nanobot_config,
+    save_deepagents_config,
+)
+from nanobot_deep.config.schema import DeepAgentsConfig
 from nanobot_deep.langgraph import (
     LangGraphBridge,
     get_session_history,
@@ -10,12 +16,6 @@ from nanobot_deep.langgraph import (
     translate_result_to_outbound,
     extract_reply_context,
     should_delegate_task,
-)
-from nanobot_deep.config.schema import DeepAgentsConfig
-from nanobot_deep.config.loader import (
-    load_deepagents_config,
-    save_deepagents_config,
-    merge_with_nanobot_config,
 )
 
 __all__ = [

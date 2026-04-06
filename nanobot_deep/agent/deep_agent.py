@@ -222,8 +222,8 @@ class DeepAgent:
 
     def _build_system_prompt(self) -> str:
         """Build system prompt with nanobot context."""
-        from datetime import datetime
         import time
+        from datetime import datetime
 
         now = datetime.now().strftime("%Y-%m-%d %H:%M (%A)")
         tz = time.strftime("%Z") or "UTC"
@@ -442,6 +442,7 @@ Skills are available at: {self.workspace}/skills/ (read SKILL.md files as needed
             OutboundMessage with the response
         """
         from nanobot.bus.events import OutboundMessage
+
         from nanobot_deep.langgraph.bridge import (
             translate_inbound_to_state,
             translate_result_to_outbound,

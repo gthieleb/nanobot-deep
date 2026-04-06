@@ -69,6 +69,7 @@ class DeepAgentsInterruptConfig(BaseConfig):
     write_file: bool = False
     execute: bool | None = None
     all_tools: bool = False
+    auto_reject_timeout: float = 60.0
 
 
 class DeepAgentsBackendConfig(BaseConfig):

@@ -1,6 +1,6 @@
 services:
   nanobot-deep:
-    image: ghcr.io/gthieleb/nanobot-deep:0.11.4
+    image: ghcr.io/gthieleb/nanobot-deep:0.11.6
     command:
     - python
     - -m

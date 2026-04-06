@@ -1,18 +1,22 @@
 services:
   nanobot-deep:
-    image: ghcr.io/gthieleb/nanobot-deep:latest
-    command: ["python", "-m", "nanobot_deep.cli", "gateway"]
+    image: ghcr.io/gthieleb/nanobot-deep:0.11.4
+    command:
+    - python
+    - -m
+    - nanobot_deep.cli
+    - gateway
     environment:
       NANOBOT_CONFIG_PATH: /home/nanobot/.nanobot/config.json
       NANOBOT_WORKSPACE: /home/nanobot/.nanobot/workspace
-      NANOBOT_VALIDATE_MODEL_ON_START: "0"
+      NANOBOT_VALIDATE_MODEL_ON_START: '0'
       DEEPAGENTS_CONFIG_PATH: /home/nanobot/.deepagents/config.toml
     volumes:
-      - ${HOME}/.nanobot/workspace:/home/nanobot/.nanobot/workspace
-      - ${HOME}/.nanobot/config.json:/home/nanobot/.nanobot/config.json:ro
-      - ${HOME}/.nanobot/deepagents.json:/home/nanobot/.nanobot/deepagents.json:ro
-      - ${HOME}/.deepagents/config.toml:/home/nanobot/.deepagents/config.toml:ro
-      - ${HOME}/.config/gh/hosts.yml:/home/nanobot/.config/gh/hosts.yml:ro
+    - ${HOME}/.nanobot/workspace:/home/nanobot/.nanobot/workspace
+    - ${HOME}/.nanobot/config.json:/home/nanobot/.nanobot/config.json:ro
+    - ${HOME}/.nanobot/deepagents.json:/home/nanobot/.nanobot/deepagents.json:ro
+    - ${HOME}/.deepagents/config.toml:/home/nanobot/.deepagents/config.toml:ro
+    - ${HOME}/.config/gh/hosts.yml:/home/nanobot/.config/gh/hosts.yml:ro
     ports:
-      - "127.0.0.1:18790:18790"
+    - 127.0.0.1:18790:18790
     restart: unless-stopped

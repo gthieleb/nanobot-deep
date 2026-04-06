@@ -9,7 +9,6 @@ from __future__ import annotations
 import asyncio
 import time
 from collections.abc import Awaitable, Callable
-from contextlib import AsyncExitStack
 from pathlib import Path
 from typing import TYPE_CHECKING, Any
 
@@ -63,6 +62,8 @@ class DeepAgent:
         config: nanobot configuration
         checkpointer: Session checkpointer instance
         deepagents_config: Optional DeepAgentsConfig (loaded if None)
+        mcp_config_path: Optional MCP config path for DeepAgents CLI
+        no_mcp: Disable MCP loading
 
     Example:
         >>> from nanobot.langgraph import SessionCheckpointer
@@ -77,6 +78,8 @@ class DeepAgent:
         config: "Config",
         checkpointer: Any | None = None,
         deepagents_config: DeepAgentsConfig | None = None,
+        mcp_config_path: str | None = None,
+        no_mcp: bool = False,
     ):
         if not DEEPAGENTS_AVAILABLE:
             raise ImportError("deepagents is not installed. Install with: pip install deepagents")
@@ -92,9 +95,11 @@ class DeepAgent:
         self._agent = None
         self._backend: BackendProtocol | None = None
         self._tools: list[Any] = []
-        self._mcp_stack: AsyncExitStack | None = None
+        self._mcp_session_manager: Any | None = None
+        self._mcp_server_infos: list[Any] = []
         self._mcp_connected = False
-        self._mcp_servers = config.tools.mcp_servers if hasattr(config, "tools") else {}
+        self._mcp_config_path = mcp_config_path
+        self._no_mcp = no_mcp
 
     def _init_model(self) -> Any:
         """Initialize model from DeepAgents CLI configuration.
@@ -198,7 +203,7 @@ class DeepAgent:
 
         agent = create_deep_agent(
             model=model,
-            tools=custom_tools,
+            tools=[*custom_tools, *self._tools],
             system_prompt=system_prompt,
             backend=backend,
             checkpointer=self.checkpointer,
@@ -251,29 +256,38 @@ Skills are available at: {self.workspace}/skills/ (read SKILL.md files as needed
 
     async def _connect_mcp(self) -> None:
         """Connect to configured MCP servers."""
-        if self._mcp_connected or not self._mcp_servers:
+        if self._mcp_connected:
+            return
+        if self._no_mcp:
+            self._mcp_connected = True
             return
 
         try:
-            from langchain_mcp_adapters import load_mcp_tools
-
-            self._mcp_stack = AsyncExitStack()
-            await self._mcp_stack.__aenter__()
-
-            for name, server_config in self._mcp_servers.items():
-                try:
-                    tools = await load_mcp_tools(server_config, self._mcp_stack)
-                    self._tools.extend(tools)
-                    logger.info(f"Loaded {len(tools)} tools from MCP server: {name}")
-                except Exception as e:
-                    logger.error(f"Failed to load MCP tools from {name}: {e}")
-
-            self._mcp_connected = True
-            if self._tools:
-                self._agent = None
-
+            from deepagents_cli.mcp_tools import resolve_and_load_mcp_tools
+            from deepagents_cli.project_utils import ProjectContext
         except ImportError:
-            logger.warning("langchain-mcp-adapters not installed, skipping MCP")
+            logger.warning("deepagents-cli not installed, skipping MCP")
+            self._mcp_connected = True
+            return
+
+        try:
+            project_context = ProjectContext.from_user_cwd(self.workspace)
+            tools, session_manager, server_infos = await resolve_and_load_mcp_tools(
+                explicit_config_path=self._mcp_config_path,
+                no_mcp=self._no_mcp,
+                project_context=project_context,
+            )
+            self._mcp_session_manager = session_manager
+            self._mcp_server_infos = server_infos
+            if tools:
+                self._tools = tools
+                self._agent = None
+                logger.info(
+                    "Loaded {} MCP tools from {} server(s)",
+                    len(tools),
+                    len(server_infos),
+                )
+            self._mcp_connected = True
         except Exception as e:
             logger.error(f"Failed to connect MCP servers: {e}")
 
@@ -699,13 +713,15 @@ Skills are available at: {self.workspace}/skills/ (read SKILL.md files as needed
 
     async def close(self) -> None:
         """Close connections and cleanup."""
-        if self._mcp_stack:
+        if self._mcp_session_manager:
             try:
-                await self._mcp_stack.aclose()
+                await self._mcp_session_manager.cleanup()
             except Exception:
                 pass
-            self._mcp_stack = None
+            self._mcp_session_manager = None
         self._mcp_connected = False
+        self._tools = []
+        self._mcp_server_infos = []
 
 
 def is_deepagents_available() -> bool:

@@ -53,6 +53,8 @@ class DeepGateway:
         config: "Config",
         workspace: Path | None = None,
         verbose: bool = False,
+        mcp_config_path: str | None = None,
+        no_mcp: bool = False,
     ):
         from nanobot.bus.queue import MessageBus
         from nanobot.channels.manager import ChannelManager
@@ -66,6 +68,8 @@ class DeepGateway:
         self._ensure_custom_telegram_channel()
         self.agent: "DeepAgent | None" = None
         self.checkpointer: "AsyncSqliteSaver | None" = None
+        self.mcp_config_path = mcp_config_path
+        self.no_mcp = no_mcp
 
         self._running = False
         self._shutdown_event = asyncio.Event()
@@ -119,6 +123,8 @@ class DeepGateway:
             config=self.config,
             checkpointer=self.checkpointer,
             deepagents_config=deepagents_config,
+            mcp_config_path=self.mcp_config_path,
+            no_mcp=self.no_mcp,
         )
 
         validate_on_start = os.environ.get("NANOBOT_VALIDATE_MODEL_ON_START", "1").lower()
@@ -259,6 +265,8 @@ async def run_gateway(
     config: "Config",
     workspace: Path | None = None,
     verbose: bool = False,
+    mcp_config_path: str | None = None,
+    no_mcp: bool = False,
 ) -> None:
     """Run the DeepGateway.
 
@@ -267,5 +275,11 @@ async def run_gateway(
         workspace: Optional workspace override
         verbose: Enable verbose logging
     """
-    gateway = DeepGateway(config, workspace, verbose)
+    gateway = DeepGateway(
+        config,
+        workspace,
+        verbose,
+        mcp_config_path=mcp_config_path,
+        no_mcp=no_mcp,
+    )
     await gateway.run()

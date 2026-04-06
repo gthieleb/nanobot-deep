@@ -169,6 +169,8 @@ class TestDeepAgentProcess:
                 deepagents_config=dg_config,
             )
 
+            agent._connect_mcp = AsyncMock()
+
             mock_compiled = AsyncMock()
             mock_compiled.ainvoke.return_value = {
                 "messages": [MagicMock(content="Test response", type="ai")]
@@ -206,6 +208,8 @@ class TestDeepAgentProcess:
                 deepagents_config=dg_config,
             )
 
+            agent._connect_mcp = AsyncMock()
+
             mock_compiled = AsyncMock()
             mock_compiled.ainvoke.side_effect = Exception("API error")
             agent._agent = mock_compiled
@@ -239,6 +243,8 @@ class TestDeepAgentProcess:
                 config=config,
                 deepagents_config=dg_config,
             )
+
+            agent._connect_mcp = AsyncMock()
 
             mock_compiled = AsyncMock()
             mock_compiled.astream_events = MagicMock(return_value=self._mock_stream_events())
@@ -275,6 +281,8 @@ class TestDeepAgentProcess:
                 config=config,
                 deepagents_config=dg_config,
             )
+
+            agent._connect_mcp = AsyncMock()
 
             mock_compiled = AsyncMock()
             mock_compiled.astream_events = MagicMock(return_value=self._mock_stream_events())
@@ -398,6 +406,43 @@ class TestDeepAgentSession:
         return config
 
 
+class TestDeepAgentMcp:
+    """Tests for MCP configuration handling."""
+
+    @pytest.mark.asyncio
+    async def test_connect_mcp_skips_when_disabled(self, tmp_path):
+        from nanobot_deep.agent.deep_agent import DeepAgent
+        from nanobot_deep.config.schema import DeepAgentsConfig
+
+        config = self._create_mock_config(tmp_path)
+        dg_config = DeepAgentsConfig()
+
+        with patch("nanobot_deep.agent.deep_agent.DEEPAGENTS_AVAILABLE", True):
+            agent = DeepAgent(
+                workspace=tmp_path,
+                config=config,
+                deepagents_config=dg_config,
+                no_mcp=True,
+            )
+
+            await agent._connect_mcp()
+
+            assert agent._mcp_connected is True
+            assert agent._tools == []
+
+    def _create_mock_config(self, workspace_path):
+        config = MagicMock()
+        config.workspace_path = workspace_path
+        config.agents = MagicMock()
+        config.agents.defaults = MagicMock()
+        config.agents.defaults.model = "test-model"
+        config.agents.defaults.max_tool_iterations = 10
+        config.tools = MagicMock()
+        config.tools.mcp_servers = {}
+        config.get_provider = MagicMock(return_value=None)
+        return config
+
+
 class TestDeepAgentClose:
     """Tests for cleanup."""
 
@@ -417,14 +462,14 @@ class TestDeepAgentClose:
                 deepagents_config=dg_config,
             )
 
-            mock_stack = AsyncMock()
-            mock_stack.aclose = AsyncMock()
-            agent._mcp_stack = mock_stack
+            mock_manager = AsyncMock()
+            mock_manager.cleanup = AsyncMock()
+            agent._mcp_session_manager = mock_manager
 
             await agent.close()
 
-            mock_stack.aclose.assert_called_once()
-            assert agent._mcp_stack is None
+            mock_manager.cleanup.assert_called_once()
+            assert agent._mcp_session_manager is None
             assert agent._mcp_connected is False
 
     @pytest.mark.asyncio
@@ -443,13 +488,13 @@ class TestDeepAgentClose:
                 deepagents_config=dg_config,
             )
 
-            mock_stack = AsyncMock()
-            mock_stack.aclose.side_effect = Exception("Cleanup error")
-            agent._mcp_stack = mock_stack
+            mock_manager = AsyncMock()
+            mock_manager.cleanup.side_effect = Exception("Cleanup error")
+            agent._mcp_session_manager = mock_manager
 
             await agent.close()
 
-            assert agent._mcp_stack is None
+            assert agent._mcp_session_manager is None
 
     def _create_mock_config(self, workspace_path):
         config = MagicMock()

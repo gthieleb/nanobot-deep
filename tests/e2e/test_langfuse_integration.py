@@ -118,11 +118,7 @@ class TestLangfuseTraceCreation:
     """Test that traces are created in Langfuse."""
 
     @pytest.mark.asyncio
-<<<<<<< HEAD
-    @pytest.mark.timeout(30)
-=======
     @pytest.mark.timeout(60)
->>>>>>> f8eadcf (Add Langfuse self-hosted Docker Compose and OTEL integration)
     async def test_simple_trace_created(
         self, langfuse_reachable, langfuse_credentials, langfuse_host, langfuse_client
     ):
@@ -149,11 +145,7 @@ class TestLangfuseTraceCreation:
         config.langfuse.session_id = trace_id
 
     @pytest.mark.asyncio
-<<<<<<< HEAD
-    @pytest.mark.timeout(30)
-=======
     @pytest.mark.timeout(90)
->>>>>>> f8eadcf (Add Langfuse self-hosted Docker Compose and OTEL integration)
     async def test_trace_with_tool_calls(
         self, langfuse_reachable, langfuse_credentials, langfuse_host, tmp_path
     ):

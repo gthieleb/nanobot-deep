@@ -44,6 +44,7 @@ def pytest_configure(config):
     """Register custom markers."""
     config.addinivalue_line("markers", "live: tests that require real LLM API key (expensive)")
     config.addinivalue_line("markers", "slow: tests that take more than 60 seconds")
+    config.addinivalue_line("markers", "langfuse: tests that require Langfuse instance")
 
 
 @pytest.fixture

@@ -33,7 +33,6 @@ dev = [
 observability = [
     "langfuse>=2.0.0",
 ]
-]
 
 [project.scripts]
 nanobot-deep = "nanobot_deep.cli:run_nanobot"

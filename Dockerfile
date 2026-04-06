@@ -54,6 +54,11 @@ BASH
 # Runtime stage
 FROM python:3.12-slim
 
+# Install GitHub CLI
+RUN apt-get update && \
+    apt-get install -y --no-install-recommends gh && \
+    rm -rf /var/lib/apt/lists/*
+
 # Create non-root user
 RUN useradd -m -u 1000 -s /bin/bash nanobot && \
     mkdir -p /home/nanobot/.nanobot/workspace && \

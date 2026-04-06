@@ -1,7 +1,7 @@
 services:
   nanobot-deep:
     image: ghcr.io/gthieleb/nanobot-deep:latest
-    command: ["python", "-m", "nanobot_deep.gateway"]
+    command: ["python", "-m", "nanobot_deep.cli", "gateway"]
     environment:
       NANOBOT_CONFIG_PATH: /home/nanobot/.nanobot/config.json
       NANOBOT_WORKSPACE: /home/nanobot/.nanobot/workspace
@@ -14,5 +14,5 @@ services:
       - ${HOME}/.deepagents/config.toml:/home/nanobot/.deepagents/config.toml:ro
       - ${HOME}/.config/gh/hosts.yml:/home/nanobot/.config/gh/hosts.yml:ro
     ports:
-      - "18790:18790"
+      - "127.0.0.1:18790:18790"
     restart: unless-stopped

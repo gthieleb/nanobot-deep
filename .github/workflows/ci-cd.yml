@@ -324,7 +324,7 @@ jobs:
   docker-manifest:
     name: Create Multi-Arch Docker Manifest
     needs: [docker-build-amd64, docker-build-arm64, versioning, sync_version]
-    if: needs.sync_version.outputs.version_synced == 'true' && github.ref == 'refs/heads/main'
+    if: needs.sync_version.outputs.version_synced == 'true' && (github.ref == 'refs/heads/main' || github.event_name == 'pull_request')
     runs-on: ubuntu-latest
     steps:
       - name: Set up Docker Buildx

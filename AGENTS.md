@@ -148,39 +148,25 @@ See [Testing](../../README.md#telegram-e2e-tests) section in main README.md for 
 
 ## Model Configuration
 
-The model is configured in `~/.nanobot/config.json`:
+The model is configured in `~/.deepagents/config.toml`:
 
-```json
-{
-  "agents": {
-    "defaults": {
-      "model": "gpt-5-mini",
-      "provider": "openai"
-    }
-  },
-  "providers": {
-    "openai": {
-      "api_key": "sk-xxx"
-    }
-  }
-}
+```toml
+[models.providers.litellm]
+enabled = true
+models = ["zai/glm-4.5", "zai/glm-4.5-air"]
+
+[models.providers.litellm.params]
+api_key = "************"
+api_base = "https://api.z.ai/api/paas/v4"
+temperature = 0.1
+
+[models.providers.anthropic.params]
+api_key = "******************"
 ```
 
 ## Langfuse Observability
 
 nanobot-deep supports Langfuse for observability and tracing. Configure it in `~/.nanobot/deepagents.json`:
-
-```json
-{
-  "langfuse": {
-    "enabled": true,
-    "public_key": "pk-lf-...",
-    "secret_key": "sk-lf-...",
-    "host": "http://localhost:3000",
-    "environment": "development"
-  }
-}
-```
 
 ### Environment Variables
 

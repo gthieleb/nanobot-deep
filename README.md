@@ -553,8 +553,7 @@ nanobot-deep supports two backend types configured via `backend.type` in `deepag
   "backend": {
     "type": "local_shell",
     "exec_timeout": 60,
-    "path_append": "/usr/local/bin",
-    "restrict_to_workspace": true
+    "path_append": "/usr/local/bin"
   },
   "interrupt_on": {
     "execute": true

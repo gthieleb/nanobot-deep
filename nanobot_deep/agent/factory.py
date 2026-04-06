@@ -279,15 +279,13 @@ def _create_backend(workspace: Path, config: "DeepAgentsConfig") -> Any:
             else "/usr/local/bin:/usr/bin:/bin"
         )
         logger.info(
-            "Using LocalShellBackend with timeout={}s, restrict_to_workspace={}",
+            "Using LocalShellBackend with timeout={}s",
             config.backend.exec_timeout,
-            config.backend.restrict_to_workspace,
         )
         return LocalShellBackend(
             root_dir=workspace,
             timeout=config.backend.exec_timeout,
             env={"PATH": path_env},
-            restrict_to_workspace=config.backend.restrict_to_workspace,
         )
 
     logger.info("Using FilesystemBackend (file operations only)")

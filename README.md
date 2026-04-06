@@ -295,6 +295,76 @@ For shell execution with `local_shell` backend:
 }
 ```
 
+### Human-in-the-Loop (HITL) Interrupts
+
+nanobot-deep supports Human-in-the-Loop (HITL) interrupts via the `interrupt_on` configuration. When enabled, the agent pauses before executing certain tools and waits for user approval via Telegram inline buttons.
+
+#### Configuration
+
+Add to `~/.nanobot/deepagents.json`:
+
+```json
+{
+  "interrupt_on": {
+    "edit_file": false,
+    "write_file": false,
+    "execute": false,
+    "all_tools": false,
+    "auto_reject_timeout": 60.0
+  }
+}
+```
+
+| Setting | Type | Default | Description |
+|---------|------|---------|-------------|
+| `edit_file` | bool | false | Pause before editing files |
+| `write_file` | bool | false | Pause before writing files |
+| `execute` | bool/null | null | Pause before shell execution (auto-enabled for `local_shell` backend) |
+| `all_tools` | bool | false | Pause before ALL tool calls |
+| `auto_reject_timeout` | float | 60.0 | Seconds to wait before auto-rejecting |
+
+#### How It Works
+
+1. Agent attempts to execute a protected tool (e.g., `execute rm -rf`)
+2. Execution pauses, interrupt is stored
+3. Telegram message sent with inline buttons:
+   - **Approve**: Allow the action
+   - **Edit**: Modify the action (not yet implemented)
+   - **Reject**: Block the action
+4. User clicks a button
+5. Decision fed back to agent, execution resumes or action is rejected
+
+#### Example Telegram Message
+
+```
+⚠️ Action requires approval
+
+Tool: execute
+
+Command:
+rm -rf /important/files
+
+Auto-reject after 60s
+
+[✅ Approve] [❌ Reject]
+```
+
+#### Shell Execution Security
+
+When using `local_shell` backend, `execute` is automatically protected:
+
+```json
+{
+  "backend": {
+    "type": "local_shell",
+    "exec_timeout": 120
+  },
+  "interrupt_on": {
+    "execute": true
+  }
+}
+```
+
 ### LiteLLM Notes (including z.ai)
 
 These notes apply to `~/.deepagents/config.toml` model/provider settings.

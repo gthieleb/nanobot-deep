@@ -331,6 +331,10 @@ class DeepAgent:
             translate_inbound_to_state,
             translate_result_to_outbound,
         )
+        from nanobot_deep.langgraph.interrupt_registry import (
+            REGISTRY,
+            format_interrupt_message,
+        )
 
         await self._connect_mcp()
 
@@ -381,6 +385,15 @@ class DeepAgent:
             return translate_result_to_outbound(result, msg)
 
         except Exception as e:
+            if self._is_graph_interrupt(e):
+                return await self._handle_interrupt(
+                    exc=e,
+                    msg=msg,
+                    config=config,
+                    interrupt_registry=REGISTRY,
+                    format_message=format_interrupt_message,
+                )
+
             logger.exception("Error in deep agent")
             return OutboundMessage(
                 channel=msg.channel,
@@ -388,6 +401,101 @@ class DeepAgent:
                 content=self._format_user_facing_error(e),
                 metadata=msg.metadata or {},
             )
+
+    @staticmethod
+    def _is_graph_interrupt(exc: Exception) -> bool:
+        """Check if exception is a GraphInterrupt."""
+        try:
+            from langgraph.errors import GraphInterrupt
+
+            return isinstance(exc, GraphInterrupt)
+        except ImportError:
+            return False
+
+    async def _handle_interrupt(
+        self,
+        exc: Exception,
+        msg: "InboundMessage",
+        config: dict[str, Any],
+        interrupt_registry: Any,
+        format_message: Any,
+    ) -> "OutboundMessage":
+        """Handle a GraphInterrupt by registering pending interrupts and waiting for user decision."""
+        from langgraph.types import Command
+        from nanobot.bus.events import OutboundMessage
+
+        from nanobot_deep.langgraph.interrupt_registry import PendingInterrupt
+
+        interrupts = exc.interrupts if hasattr(exc, "interrupts") else []
+        if not interrupts:
+            return OutboundMessage(
+                channel=msg.channel,
+                chat_id=msg.chat_id,
+                content="Agent interrupted but no interrupt details available.",
+                metadata=msg.metadata or {},
+            )
+
+        pending_interrupts = []
+        for interrupt_obj in interrupts:
+            hitl_request = interrupt_obj.value
+            if not isinstance(hitl_request, dict):
+                continue
+
+            action_requests = hitl_request.get("action_requests", [])
+            review_configs = hitl_request.get("review_configs", [])
+
+            config_map = {rc.get("action_name"): rc for rc in review_configs}
+
+            for action in action_requests:
+                tool_name = action.get("name", "unknown")
+                tool_args = action.get("args", {})
+                description = action.get("description", f"{tool_name} requires approval")
+                review_cfg = config_map.get(tool_name, {})
+                allowed_decisions = review_cfg.get("allowed_decisions", ["approve", "reject"])
+
+                pending = PendingInterrupt(
+                    session_key=msg.session_key,
+                    chat_id=msg.chat_id,
+                    tool_call_id=interrupt_obj.id or tool_name,
+                    tool_name=tool_name,
+                    tool_args=tool_args,
+                    description=description,
+                    allowed_decisions=allowed_decisions,
+                    timeout=self.dg_config.interrupt_on.auto_reject_timeout
+                    if hasattr(self.dg_config, "interrupt_on")
+                    else 60.0,
+                )
+                await interrupt_registry.register(pending)
+                pending_interrupts.append(pending)
+
+        if not pending_interrupts:
+            return OutboundMessage(
+                channel=msg.channel,
+                chat_id=msg.chat_id,
+                content="Agent interrupted but no actionable interrupts found.",
+                metadata=msg.metadata or {},
+            )
+
+        interrupt_msg = "\n\n".join(format_message(p) for p in pending_interrupts)
+        interrupt_msg += "\n\n<b>Waiting for your decision...</b>"
+
+        user_decisions = []
+        for pending in pending_interrupts:
+            decision = await interrupt_registry.wait_for_resolution(
+                pending.tool_call_id, timeout=pending.timeout
+            )
+            if decision:
+                user_decisions.append(decision)
+            else:
+                user_decisions.append({"type": "reject", "message": "Timeout"})
+
+            await interrupt_registry.unregister(pending.tool_call_id)
+
+        result = await self.agent.invoke(Command(resume={"decisions": user_decisions}), config)
+
+        from nanobot_deep.langgraph.bridge import translate_result_to_outbound
+
+        return translate_result_to_outbound(result, msg)
 
     @staticmethod
     def _exception_chain(exc: Exception, max_depth: int = 6) -> list[BaseException]:

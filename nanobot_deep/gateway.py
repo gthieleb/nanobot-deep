@@ -16,7 +16,7 @@ import asyncio
 import os
 import signal
 from pathlib import Path
-from typing import TYPE_CHECKING
+from typing import TYPE_CHECKING, Any
 
 from loguru import logger
 
@@ -77,6 +77,7 @@ class DeepGateway:
     def _ensure_custom_telegram_channel(self) -> None:
         """Replace Telegram channel instance with CustomTelegramChannel."""
         from nanobot_deep.channels.telegram import CustomTelegramChannel
+        from nanobot_deep.langgraph.interrupt_registry import REGISTRY
 
         channels = getattr(self.channels, "channels", None)
         if not isinstance(channels, dict):
@@ -84,6 +85,9 @@ class DeepGateway:
 
         telegram_channel = channels.get("telegram")
         if telegram_channel is None or isinstance(telegram_channel, CustomTelegramChannel):
+            telegram_channel = channels.get("telegram")
+            if isinstance(telegram_channel, CustomTelegramChannel):
+                self._register_interrupt_callback(telegram_channel, REGISTRY)
             return
 
         providers = getattr(self.config, "providers", None)
@@ -96,12 +100,23 @@ class DeepGateway:
         )
         custom_channel.transcription_api_key = groq_api_key
         channels["telegram"] = custom_channel
+        self._register_interrupt_callback(custom_channel, REGISTRY)
         logger.info("Using CustomTelegramChannel for Telegram")
+
+    def _register_interrupt_callback(self, channel: Any, registry: Any) -> None:
+        """Register interrupt callback to send Telegram messages when interrupts are registered."""
+
+        async def on_interrupt(interrupt: Any) -> None:
+            try:
+                await channel.send_interrupt(interrupt.chat_id, interrupt)
+            except Exception as e:
+                logger.error("Failed to send interrupt message: {}", e)
+
+        registry.on_register(on_interrupt)
 
     async def _setup_checkpointer(self) -> "AsyncSqliteSaver":
         """Create and setup the session checkpointer."""
         import aiosqlite
-
         from langgraph.checkpoint.sqlite.aio import AsyncSqliteSaver
 
         db_path = self.workspace.parent / "sessions.db"
@@ -157,7 +172,7 @@ class DeepGateway:
                 f"Agent processed message, publishing response to {msg.channel}:{msg.chat_id}"
             )
             await self.bus.publish_outbound(response)
-            logger.debug(f"Response published successfully")
+            logger.debug("Response published successfully")
         except Exception as e:
             logger.exception(f"Error processing message: {e}")
             from nanobot.bus.events import OutboundMessage

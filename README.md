@@ -64,6 +64,9 @@ uv tool install nanobot-deep
 # Initialize nanobot configuration (if not done already)
 nanobot-deep onboard
 
+# After onboard: configure model/provider in ~/.deepagents/config.toml (required)
+# Configure Langfuse/DeepAgent runtime in ~/.nanobot/deepagents.json (optional)
+
 # Optional: create deepagents.json for advanced DeepAgent settings
 nanobot-deep config
 
@@ -155,9 +158,9 @@ settings live in nanobot config; DeepAgent runtime tuning is optional.
 
 | File | Required | Purpose |
 |------|----------|---------|
-| `~/.nanobot/config.json` | Yes | Channels, workspace, agent defaults, tool exec settings |
-| `~/.deepagents/config.toml` | Yes | Model/provider config for deepagents-cli |
-| `~/.nanobot/deepagents.json` | Optional | DeepAgent runtime tuning (middleware, summarization, task routing, subagents, checkpointer, backend) |
+| `~/.nanobot/config.json` | Yes | Channels, workspace, agent defaults, tool exec settings (created by `nanobot onboard`, does NOT include model/provider - see below) |
+| `~/.deepagents/config.toml` | Yes | Model/provider config for deepagents-cli (configure manually after onboard) |
+| `~/.nanobot/deepagents.json` | Optional | DeepAgent runtime tuning (middleware, summarization, task routing, subagents, checkpointer, backend, Langfuse) |
 
 ### MCP Tools (DeepAgents CLI)
 
@@ -294,8 +297,8 @@ provider settings. Model/provider config comes from `~/.deepagents/config.toml`.
 
 You can configure Langfuse via environment variables or the optional
 `~/.nanobot/deepagents.json` file. Note: `nanobot onboard` does not support
-Langfuse configuration — edit `~/.nanobot/deepagents.json` manually after
-running onboard.
+Langfuse or provider/LLM configuration — edit `~/.nanobot/deepagents.json`
+and `~/.deepagents/config.toml` manually after running onboard.
 
 ### Configuration
 

@@ -123,6 +123,8 @@ def gateway(
     workspace: str | None = typer.Option(None, "--workspace", "-w", help="Workspace directory"),
     verbose: bool = typer.Option(False, "--verbose", "-v", help="Verbose output"),
     config: str | None = typer.Option(None, "--config", "-c", help="Path to config file"),
+    mcp_config: str | None = typer.Option(None, "--mcp-config", help="Path to MCP config file"),
+    no_mcp: bool = typer.Option(False, "--no-mcp", help="Disable MCP tools"),
 ):
     """Start the nanobot-deep gateway with DeepAgent backend.
 
@@ -149,6 +151,8 @@ def gateway(
             config=nanobot_config,
             workspace=nanobot_config.workspace_path,
             verbose=verbose,
+            mcp_config_path=mcp_config,
+            no_mcp=no_mcp,
         )
     )
 
@@ -159,6 +163,8 @@ def agent(
     session_id: str = typer.Option("cli:direct", "--session", "-s", help="Session ID"),
     workspace: str | None = typer.Option(None, "--workspace", "-w", help="Workspace directory"),
     config: str | None = typer.Option(None, "--config", "-c", help="Config file path"),
+    mcp_config: str | None = typer.Option(None, "--mcp-config", help="Path to MCP config file"),
+    no_mcp: bool = typer.Option(False, "--no-mcp", help="Disable MCP tools"),
     timeout: float | None = typer.Option(
         None, "--timeout", "-t", help="Timeout in seconds for a single request"
     ),
@@ -216,6 +222,8 @@ def agent(
             config=nanobot_config,
             checkpointer=checkpointer,
             deepagents_config=deepagents_config,
+            mcp_config_path=mcp_config,
+            no_mcp=no_mcp,
         )
 
     async def _process_with_timeout(agent_instance: DeepAgent, *args, **kwargs) -> str:

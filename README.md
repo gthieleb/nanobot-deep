@@ -149,6 +149,28 @@ settings live in nanobot config; DeepAgent runtime tuning is optional.
 | `~/.deepagents/config.toml` | Yes | Model/provider config for deepagents-cli |
 | `~/.nanobot/deepagents.json` | Optional | DeepAgent runtime tuning (middleware, summarization, task routing, subagents, checkpointer, backend) |
 
+### MCP Tools (DeepAgents CLI)
+
+nanobot-deep uses DeepAgents CLI MCP discovery via `.mcp.json` files. The nanobot
+config `tools.mcp_servers` is ignored in nanobot-deep.
+
+Discovery order (lowest to highest priority):
+
+1. `~/.deepagents/.mcp.json`
+2. `<project>/.deepagents/.mcp.json`
+3. `<project>/.mcp.json`
+
+DeepAgents merges these configs by `mcpServers` name. For project-level stdio
+servers, the CLI enforces trust (fingerprinted in `~/.deepagents/config.toml`).
+If you run non-interactive, prefer user-level config or pre-trust the project.
+
+CLI overrides:
+
+- `--mcp-config PATH` to load an explicit MCP config (highest precedence)
+- `--no-mcp` to disable MCP loading entirely
+
+Docs: https://docs.langchain.com/oss/python/deepagents/cli/mcp-tools
+
 ### Required: nanobot config (channels + defaults)
 
 Minimal example (add your channels and API keys as needed):

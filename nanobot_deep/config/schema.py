@@ -61,26 +61,33 @@ class DeepAgentsInterruptConfig(BaseConfig):
     """Human-in-the-loop interrupt configuration.
 
     Set to true to pause agent execution before that tool runs.
+    When using local_shell backend, execute defaults to true (auto-enabled for security).
+    Set to false explicitly to disable HITL for execute (not recommended).
     """
 
     edit_file: bool = False
     write_file: bool = False
-    execute: bool = False
+    execute: bool | None = None
     all_tools: bool = False
 
 
 class DeepAgentsBackendConfig(BaseConfig):
     """Backend/sandbox configuration overrides.
 
-    Note: The sandbox type comes from nanobot config (agents.defaults.sandbox).
-    These are additional backend-specific settings.
+    Controls the filesystem backend type and execution settings.
+    - filesystem: Read/write files only (default, safe)
+    - local_shell: Full shell execution (unrestricted, requires HITL for execute)
+
+    Note: For production with untrusted code, consider Daytona/sandbox backends
+    which provide isolated execution environments.
     """
 
-    sandbox_id: str | None = None
-    setup_script: str | None = None
+    type: Literal["filesystem", "local_shell"] = "filesystem"
     restrict_to_workspace: bool = False
     exec_timeout: int = 60
     path_append: str = ""
+    sandbox_id: str | None = None
+    setup_script: str | None = None
 
 
 class DeepAgentsCheckpointerConfig(BaseConfig):
@@ -215,16 +222,32 @@ class DeepAgentsConfig(BaseConfig):
         """Get expanded checkpointer path."""
         return Path(self.checkpointer.path).expanduser()
 
-    def get_interrupt_on_config(self) -> dict[str, bool]:
-        """Convert interrupt_on to deepagents format."""
+    def get_interrupt_on_config(self, backend_type: str = "filesystem") -> dict[str, bool]:
+        """Convert interrupt_on to deepagents format.
+
+        When using local_shell backend, execute is automatically protected by HITL
+        unless explicitly disabled (execute: false in config).
+        """
         if self.interrupt_on.all_tools:
             return {
                 "edit_file": True,
                 "write_file": True,
                 "execute": True,
             }
-        return {
+
+        config = {
             "edit_file": self.interrupt_on.edit_file,
             "write_file": self.interrupt_on.write_file,
-            "execute": self.interrupt_on.execute,
         }
+
+        if backend_type == "local_shell":
+            if self.interrupt_on.execute is None:
+                config["execute"] = True
+            else:
+                config["execute"] = self.interrupt_on.execute
+        else:
+            config["execute"] = (
+                self.interrupt_on.execute if self.interrupt_on.execute is not None else False
+            )
+
+        return config

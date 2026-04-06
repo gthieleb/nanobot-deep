@@ -51,7 +51,7 @@ class TestDeepAgentsSchema:
 
         assert config.edit_file is False
         assert config.write_file is False
-        assert config.execute is False
+        assert config.execute is None
         assert config.all_tools is False
 
     def test_interrupt_config_custom(self):

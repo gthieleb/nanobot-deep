@@ -1,7 +1,7 @@
 services:
   nanobot-deep:
-    image: ghcr.io/gthieleb/nanobot-deep:0.12.3
-    user: "1000:1000"
+    image: ghcr.io/gthieleb/nanobot-deep:0.12.4
+    user: 1000:1000
     command:
     - python
     - -m
@@ -13,9 +13,9 @@ services:
       NANOBOT_VALIDATE_MODEL_ON_START: '0'
       DEEPAGENTS_CONFIG_PATH: /home/nanobot/.deepagents/config.toml
     volumes:
-      - ${HOME}/.nanobot:/home/nanobot/.nanobot
-      - ${HOME}/.deepagents/config.toml:/home/nanobot/.deepagents/config.toml:ro
-      - ${HOME}/.config/gh/hosts.yml:/home/nanobot/.config/gh/hosts.yml:ro
+    - ${HOME}/.nanobot:/home/nanobot/.nanobot
+    - ${HOME}/.deepagents/config.toml:/home/nanobot/.deepagents/config.toml:ro
+    - ${HOME}/.config/gh/hosts.yml:/home/nanobot/.config/gh/hosts.yml:ro
     ports:
-      - 127.0.0.1:18790:18790
+    - 127.0.0.1:18790:18790
     restart: unless-stopped

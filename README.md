@@ -2,6 +2,18 @@
 
 LangGraph/DeepAgents integration for nanobot.
 
+## Docker Compose
+
+Use the bundled `docker-compose.yml` to run the gateway:
+
+```bash
+docker compose up -d
+docker compose logs -f nanobot-deep
+```
+
+The compose file uses `ghcr.io/gthieleb/nanobot-deep:latest`. Pin a specific
+version by editing the image tag.
+
 ## Summary
 
 **nanobot-deep** provides a LangGraph-based agent backend for nanobot, replacing the default LiteLLM-based `AgentLoop` with `DeepAgent`. This enables:

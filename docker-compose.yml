@@ -1,6 +1,6 @@
 services:
   nanobot-deep:
-    image: ghcr.io/gthieleb/nanobot-deep:0.8.0
+    image: ghcr.io/gthieleb/nanobot-deep:latest
     command: ["python", "-m", "nanobot_deep.gateway"]
     environment:
       NANOBOT_CONFIG_PATH: /home/nanobot/.nanobot/config.json

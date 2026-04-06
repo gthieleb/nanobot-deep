@@ -369,14 +369,27 @@ jobs:
           ref: main
           fetch-depth: 0
 
-      - name: Install yq
-        run: pip install --no-cache-dir yq
+      - name: Install PyYAML
+        run: pip install --no-cache-dir pyyaml
 
       - name: Update image tag in docker-compose.yml
         env:
           VERSION: ${{ needs.versioning.outputs.version }}
         run: |
-          yq -i -y '.services.nanobot-deep.image = "ghcr.io/gthieleb/nanobot-deep:'"$VERSION"'"' docker-compose.yml
+          python - <<'PY'
+          import os
+          import yaml
+
+          version = os.environ["VERSION"]
+          with open("docker-compose.yml", "r") as f:
+            doc = yaml.safe_load(f)
+
+          doc["services"]["nanobot-deep"]["image"] = f"ghcr.io/gthieleb/nanobot-deep:{version}"
+
+          with open("docker-compose.yml", "w") as f:
+            yaml.dump(doc, f, default_flow_style=False, sort_keys=False)
+          print(f"Updated image to ghcr.io/gthieleb/nanobot-deep:{version}")
+          PY
 
       - name: Commit and push
         run: |

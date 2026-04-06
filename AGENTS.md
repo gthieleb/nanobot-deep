@@ -335,6 +335,11 @@ docker compose -f docker-compose.yml -f docker-compose.langfuse.yml up -d
 # Access Langfuse UI at http://localhost:3000
 ```
 
+### Docker Compose
+
+When editing docker-compose files, ensure ports are bound to localhost unless you explicitly need LAN/CI exposure.
+Use `127.0.0.1:PORT:PORT` instead of `PORT:PORT`.
+
 ### OTEL Telemetry
 
 OpenTelemetry is supported via environment variables:

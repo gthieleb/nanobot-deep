@@ -507,3 +507,66 @@ Agents are defined in the [opencode-skills](https://github.com/gthieleb/opencode
 - `nanobot-deep/agents/ai-developer.md`
 - `nanobot-deep/agents/ai-tester.md`
 - `nanobot-deep/agents/ai-product-owner.md`
+
+## Git Worktrees
+
+Use git worktrees instead of switching branches with `git checkout`. This lets you work on multiple features in parallel without losing uncommitted changes.
+
+### Quick Start
+
+```bash
+# Create worktree for an issue (auto-naming)
+git worktree add -b "fix/121-checkpointer" ../nanobot-deep-121-fix main
+
+# Or for named features
+git worktree add -b "feat/telegram-commands" ../nanobot-deep-telegram main
+```
+
+### Workflow
+
+1. **Create worktree from issue number**:
+   ```bash
+   # Get issue number first
+   gh issue view 121 --json number --jq '.number'
+   
+   # Create worktree
+   git worktree add -b "fix/121-description" ../nanobot-deep-121 ../main
+   ```
+
+2. **Work in the worktree**:
+   ```bash
+   cd ../nanobot-deep-121
+   # Make changes, commit, push
+   ```
+
+3. **Cleanup when done**:
+   ```bash
+   # Remove worktree (keeps branch!)
+   git worktree remove ../nanobot-deep-121
+   
+   # Or prune dead worktrees
+   git worktree prune
+   ```
+
+### Commands
+
+```bash
+# List all worktrees
+git worktree list
+
+# Remove a worktree
+git worktree remove /path/to/worktree
+
+# Prune dead worktree references
+git worktree prune
+
+# Move a worktree
+git worktree move <old-path> <new-path>
+```
+
+### Benefits over branch switching
+
+- No need to `git stash` when switching between features
+- Each worktree has its own working directory + branch
+- Work on multiple features in parallel in separate terminal windows
+- Easier code review: see diffs without switching

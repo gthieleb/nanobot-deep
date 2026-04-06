@@ -376,7 +376,7 @@ jobs:
         env:
           VERSION: ${{ needs.versioning.outputs.version }}
         run: |
-          yq -i '.services.nanobot-deep.image = "ghcr.io/gthieleb/nanobot-deep:'"$VERSION"'"' docker-compose.yml
+          yq -i -y '.services.nanobot-deep.image = "ghcr.io/gthieleb/nanobot-deep:'"$VERSION"'"' docker-compose.yml
 
       - name: Commit and push
         run: |

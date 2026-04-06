@@ -233,13 +233,13 @@ Only needed if you want to tune DeepAgent runtime behavior. If the file is
 absent, nanobot-deep uses defaults. This file is not read by deepagents-cli.
 
 Settings you can tune here include:
+- backend type (`filesystem` or `local_shell`) and execution settings
 - middleware toggles (summarization, memory, prompt caching, skills, subagents)
 - summarization settings
 - task routing and delegate threshold
 - subagent definitions
 - interrupt_on behavior
 - checkpointer type/path
-- backend exec timeout/path append
 
 Example:
 
@@ -247,6 +247,7 @@ Example:
 {
   "recursion_limit": 500,
   "backend": {
+    "type": "filesystem",
     "exec_timeout": 60,
     "path_append": ""
   },
@@ -274,6 +275,22 @@ Example:
   "interrupt_on": {
     "edit_file": false,
     "execute": false
+  }
+}
+```
+
+For shell execution with `local_shell` backend:
+
+```json
+{
+  "backend": {
+    "type": "local_shell",
+    "exec_timeout": 120,
+    "path_append": "/usr/local/bin",
+    "restrict_to_workspace": true
+  },
+  "interrupt_on": {
+    "execute": true
   }
 }
 ```
@@ -459,6 +476,95 @@ ruff check --fix nanobot_deep/
 ### Telegram E2E Tests
 
 See `AGENTS.md#telegram-e2e-tests-requires-real-account` for the full guide including test modes (DM vs group), environment variables, and important safety notes.
+
+### Customisation
+
+nanobot-deep supports the same customisation options as [LangChain's Deep Agents](https://docs.langchain.com/oss/javascript/deepagents/customization). Configuration is driven through `~/.nanobot/deepagents.json`.
+
+#### Currently Supported via `deepagents.json`
+
+| Feature | Config Path | Description |
+|---------|-------------|-------------|
+| Middleware toggles | `middleware.*` | Enable/disable summarization, memory, skills, subagents, prompt caching |
+| Subagents | `subagents` | Define specialized subagents with custom system prompts and tools |
+| Skills paths | `skills` | Paths to skill directories (SKILL.md files) |
+| Memory paths | `memory` | Paths to AGENTS.md memory files |
+| Interrupt on | `interrupt_on.*` | Human-in-the-loop approval for file/execute operations |
+| Summarization | `summarization.*` | Trigger threshold and message retention |
+| Task routing | `task_routing.*` | Control commands and delegate threshold |
+| Checkpointer | `checkpointer.*` | SQLite or memory persistence |
+| Backend type | `backend.type` | `filesystem` (default) or `local_shell` |
+| Backend settings | `backend.*` | Exec timeout, path append, workspace restriction |
+| Langfuse | `langfuse.*` | Observability and tracing |
+
+#### Planned Customisation Options
+
+| Feature | Config Path | Status |
+|---------|-------------|--------|
+| Custom system prompt | `system_prompt` | Not implemented - currently hardcoded in `deep_agent.py` |
+| Custom tools | `tools` | `_build_custom_tools()` returns empty - extend for your tools |
+| Daytona sandbox | `backend.type: "daytona"` | Enable by installing `langchain-daytona` |
+| Composite/Store backends | `backend.type` | Planned - route different paths to different backends |
+| Structured output | `response_format` | Not implemented |
+
+#### Adding Custom Tools
+
+Extend `_build_custom_tools()` in `nanobot_deep/agent/deep_agent.py`:
+
+```python
+def _build_custom_tools(self) -> list[Any]:
+    """Build nanobot-specific custom tools."""
+    from langchain_core.tools import tool
+    import z
+
+    @tool
+    def get_weather(city: str) -> str:
+        """Get weather for a city."""
+        return f"Weather in {city}: sunny, 22°C"
+
+    return [get_weather]
+```
+
+#### Adding Custom Middleware
+
+Custom middleware can be added to `_create_agent()` in `deep_agent.py`. See [LangChain middleware docs](https://docs.langchain.com/oss/javascript/langchain/middleware/overview) for the middleware API.
+
+#### Backend Types
+
+nanobot-deep supports two backend types configured via `backend.type` in `deepagents.json`:
+
+| Type | File Operations | Execute Tool | Use Case |
+|------|---------------|-------------|----------|
+| `filesystem` (default) | ✅ | ❌ | Safe, read/write only |
+| `local_shell` | ✅ | ✅ | Full shell execution |
+
+**FilesystemBackend** (default):
+```json
+{
+  "backend": {
+    "type": "filesystem"
+  }
+}
+```
+
+**LocalShellBackend** (with shell execution):
+```json
+{
+  "backend": {
+    "type": "local_shell",
+    "exec_timeout": 60,
+    "path_append": "/usr/local/bin",
+    "restrict_to_workspace": true
+  },
+  "interrupt_on": {
+    "execute": true
+  }
+}
+```
+
+**Security note:** When using `local_shell`, the `execute` tool is automatically protected by HITL (human-in-the-loop) approval unless explicitly disabled. This prevents the agent from running arbitrary commands without review.
+
+For production with untrusted code, consider **Daytona sandbox** backends which provide isolated container execution. See [LangChain's backend docs](https://docs.langchain.com/oss/javascript/deepagents/backends).
 
 ## License
 

@@ -338,6 +338,27 @@ The existing single-group configuration presents several challenges:
 3. Parallel test execution is not feasible
 ```
 
+## Branch & PR Conventions
+
+Before creating fixes or features, always check if you are on the main branch or commit changes from main branch:
+
+```bash
+# Check current branch
+git branch
+
+# If on a feature/fix branch, switch to main first
+git checkout main
+
+# Pull latest changes
+git pull origin main
+
+# Then create your feature/fix branch
+git checkout -b fix/your-fix main
+git checkout -b feat/your-feature main
+```
+
+**Important:** Always base new branches on the latest `main` to avoid stale commits.
+
 ## Conventional Commits
 
 When working on nanobot-deep, **always** use Conventional Commits format for all commits.

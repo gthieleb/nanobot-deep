@@ -361,7 +361,7 @@ jobs:
   update-docker-compose:
     name: Update docker-compose.yml
     needs: [docker-manifest, versioning, sync_version]
-    if: (github.ref == 'refs/heads/main' || (github.event_name == 'pull_request' && github.base_ref == 'main')) && needs.versioning.outputs.is_prerelease == 'false' && needs.sync_version.outputs.version_synced == 'true'
+    if: needs.versioning.outputs.is_prerelease == 'false' && needs.sync_version.outputs.version_synced == 'true' && (github.ref == 'refs/heads/main' || github.event_name == 'pull_request')
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4

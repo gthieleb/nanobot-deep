@@ -334,6 +334,11 @@ Add to `~/.nanobot/deepagents.json`:
 4. User clicks a button
 5. Decision fed back to agent, execution resumes or action is rejected
 
+**Note:** nanobot-deep currently uses static inline buttons (Approve/Reject/Edit). The
+official nanobot project has a PR for dynamic, rich interactive buttons with better
+UX (per-tool customization, reason input, edit dialogs) that needs cleanup before merge.
+Once that lands, nanobot-deep should adopt the dynamic button approach instead.
+
 #### Example Telegram Message
 
 ```

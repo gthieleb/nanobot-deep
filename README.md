@@ -7,12 +7,22 @@ LangGraph/DeepAgents integration for nanobot.
 Use the bundled `docker-compose.yml` to run the gateway:
 
 ```bash
+# Start or recreate (if config changed)
 docker compose up -d
+
+# Recreate container (after config changes)
+docker compose recreate
+
+# View logs
 docker compose logs -f nanobot-deep
 ```
 
 The compose file uses `ghcr.io/gthieleb/nanobot-deep:latest`. Pin a specific
 version by editing the image tag.
+
+**Config file permissions**: If using Docker, ensure config files in `~/.nanobot/`
+are readable by the container. Add the container user to your group or set
+files to world-readable:
 
 ## Summary
 
@@ -279,6 +289,8 @@ When using DeepAgents with the `litellm` provider in `~/.deepagents/config.toml`
 ## Langfuse Observability
 
 nanobot-deep supports Langfuse for observability and tracing of agent execution.
+Langfuse is **only for tracing/observability** — it does NOT provide model or
+provider settings. Model/provider config comes from `~/.deepagents/config.toml`.
 
 You can configure Langfuse via environment variables or the optional
 `~/.nanobot/deepagents.json` file.

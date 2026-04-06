@@ -346,55 +346,18 @@ export OTEL_SERVICE_NAME="nanobot-deep"
 
 This project uses [Conventional Commits](https://www.conventionalcommits.org/) for semantic versioning and automated releases.
 
-**Commit Format**:
-```
-<type>[optional scope]: <description>
+**Types**: `feat:`, `fix:`, `docs:`, `style:`, `refactor:`, `perf:`, `test:`, `chore:`, `ci:`
 
-[optional body]
+**Breaking changes**: Add `!` after type or `BREAKING CHANGE:` in footer (triggers major version bump).
 
-[optional footer(s)]
-```
-
-**Types**:
-- `feat:` - New feature (triggers minor version bump)
-- `fix:` - Bug fix (triggers patch version bump)
-- `docs:` - Documentation only changes
-- `style:` - Code style changes (formatting, etc.)
-- `refactor:` - Code refactoring (no feature/fix)
-- `perf:` - Performance improvements
-- `test:` - Adding or updating tests
-- `chore:` - Build process, tooling, dependencies
-- `ci:` - CI/CD configuration changes
-
-**Breaking Changes**:
-
-Add `BREAKING CHANGE:` in footer or `!` after type to trigger major version bump:
-```
-feat!: remove support for Python 3.11
-
-BREAKING CHANGE: Minimum Python version is now 3.12
-```
-
-**Examples**:
+**Quick examples**:
 ```bash
-# Feature (minor bump: 0.1.0 → 0.2.0)
 git commit -m "feat: add A2A agent-to-agent protocol support"
-
-# Fix (patch bump: 0.1.0 → 0.1.1)
 git commit -m "fix: resolve AsyncSqliteSaver compatibility issue"
-
-# Multiple changes
-git commit -m "feat(memory): add conversation context middleware
-
-- Integrate deepagents memory middleware
-- Configure memory storage in optional deepagents.json
-- Add E2E tests for context retention"
+git commit -m "feat!: remove support for Python 3.11"
 ```
 
-**CI/CD Integration**:
-- Semantic versioning automatically generates version numbers from commits
-- GitHub releases include auto-generated changelogs
-- Docker images tagged with semantic versions
+See `AGENTS.md#conventional-commits` for full documentation including scopes, validation, and CI/CD integration.
 
 ### Development Workflow
 
@@ -476,58 +439,9 @@ ruff check nanobot_deep/
 ruff check --fix nanobot_deep/
 ```
 
-### Telegram E2E Tests (Requires Real Account)
+### Telegram E2E Tests
 
-Telegram E2E tests use Telethon to test from a real user account perspective.
-
-**Test Modes:**
-
-**Local Development (DM mode - default):**
-```bash
-source ~/env/ai/nanobot/ci  # Sets TELEGRAM_LOCAL_MODE="dm" by default
-pytest tests/e2e/test_telegram*.py -m live -v
-```
-- Tests run in DM (direct message) mode
-- Test user sends direct messages to bot
-- For local development and testing
-
-**CI/Production (Group mode):**
-```bash
-source ~/env/ai/nanobot/ci
-TELEGRAM_LOCAL_MODE=group pytest tests/e2e/test_telegram*.py -m live -v
-```
-- Tests run in nanobot-deep-ci group
-- Test user sends messages to group (you can control the group!)
-- For CI and production testing
-
-**Required environment variables:**
-```bash
-source /home/gun/env/telegram/app/ci
-
-export TELEGRAM_API_ID=12345
-export TELEGRAM_API_HASH=abc123...
-export TEST_USER_PHONE=+49...
-export TELEGRAM_BOT_USERNAME=@your_bot
-
-# For CI/Group mode:
-export TELEGRAM_CI_GROUP_ID=-1001234567890  # nanobot-deep-ci group (set this!)
-```
-
-**Run tests:**
-```bash
-# Local development (DM):
-pytest tests/e2e/test_telegram*.py -m live -v
-
-# CI (Group):
-TELEGRAM_LOCAL_MODE=group pytest tests/e2e/test_telegram*.py -m live -v
-```
-
-**Test files:**
-- `test_telegram_basic.py` - Basic commands (/ping, /help, /new, /stop)
-- `test_telegram_messages.py` - Message flow and conversation
-- `test_telegram_errors.py` - Error handling and edge cases
-
-**Get API credentials:** https://my.telegram.org/apps
+See `AGENTS.md#telegram-e2e-tests-requires-real-account` for the full guide including test modes (DM vs group), environment variables, and important safety notes.
 
 ## License
 

@@ -236,6 +236,44 @@ gh issue view 12
 
 **Important:** `gh issue list` only shows title/status, but `gh issue view` includes the complete conversation thread with all comments and updates.
 
+### GitHub Projects
+
+Issue management happens via GitHub Projects. Add new issues to the project and assign labels.
+
+**Project:** `Nanobot-Deep Dev`
+
+**Project Details:**
+```bash
+# List projects
+gh project list --owner gthieleb
+
+# Current project ID: PVT_kwHOAUWB9M4BTwAw
+# Owner: gthieleb
+# Repository: nanobot-deep
+```
+
+**Adding Issues to Project:**
+```bash
+# Add issue to project
+gh issue edit <issue_number> --add-project "Nanobot-Deep Dev"
+
+# Add labels (create if needed)
+gh label create "<label-name>" --description "<description>"
+gh issue edit <issue_number> --add-label "<label-name>"
+```
+
+**Available Labels:**
+| Label | Description |
+|-------|-------------|
+| `enhancement` | New feature or request |
+| `bug` | Something isn't working |
+| `documentation` | Improvements or additions to docs |
+| `phase-1` through `phase-4` | Development phases |
+| `priority-high`, `priority-med`, `priority-low` | Priority levels |
+| `planning-agent` | Planning agent pattern |
+| `authorization` | Authorization and permission handling |
+| `hitl` | Human-in-the-loop interrupts |
+
 ### PR and Pipeline Status
 
 - Never guess or infer PR/CI status.

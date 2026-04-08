@@ -2,27 +2,40 @@
 
 LangGraph/DeepAgents integration for nanobot.
 
-## Docker Compose
+## Docker Deployment
 
-Use the bundled `docker-compose.yml` to run the gateway:
+Production (localhost-only port binding in `docker-compose.yml`):
 
 ```bash
-# Start or recreate (if config changed)
+# Start
 docker compose up -d
 
-# Recreate container (after config changes)
-docker compose recreate
+# Stop
+docker compose down
 
-# View logs
+# Logs
 docker compose logs -f nanobot-deep
+
+# Update image
+docker compose pull
+docker compose up -d
+
+# Rollback (pin a previous image tag, then)
+docker compose up -d
 ```
 
-The compose file uses `ghcr.io/gthieleb/nanobot-deep:latest`. Pin a specific
-version by editing the image tag.
+Dev mode (bind mount local code):
+
+```bash
+docker compose -f docker-compose.yml -f docker-compose.dev.yml up -d --build
+```
+
+Code changes in `./nanobot_deep` and `./templates` are picked up on restart.
+If you change dependencies, rebuild the image.
 
 **Config file permissions**: If using Docker, ensure config files in `~/.nanobot/`
 are readable by the container. Add the container user to your group or set
-files to world-readable:
+files to world-readable.
 
 ## Summary
 
@@ -162,6 +175,30 @@ settings live in nanobot config; DeepAgent runtime tuning is optional.
 | `~/.deepagents/config.toml` | Yes | Model/provider config for deepagents-cli (configure manually after onboard) |
 | `~/.nanobot/deepagents.json` | Optional | DeepAgent runtime tuning (middleware, summarization, task routing, subagents, checkpointer, backend, Langfuse) |
 
+### Configuration Matrix
+
+| Option / Purpose | `config.json` | `config.toml` | `deepagents.json` | Notes |
+|---|---|---|---|---|
+| DeepAgent model/provider selection | No | Yes | No | Required for DeepAgent model resolution |
+| DeepAgent provider API keys | No | Yes | No | Configure provider credentials here |
+| DeepAgent runtime model params (max_tokens, temperature) | No | No | Yes | Passed as extra model kwargs |
+| Non-deep nanobot model/provider defaults | Yes | No | No | Used by non-deep nanobot commands |
+| Channels (telegram/slack/etc) | Yes | No | No | Tokens and enable/disable flags |
+| Workspace path | Yes | No | No | Used to resolve skills/memory paths |
+| Max tool iterations (recursion_limit) | Yes | No | Yes (overridden) | `config.json` overrides |
+| Memory window (context windowing) | Yes | No | Yes (overridden) | `config.json` overrides |
+| Tool exec timeout/path/restrict workspace | Yes | No | Yes (overridden) | `config.json` overrides |
+| Checkpointer type/path (sqlite/memory/none) | No | No | Yes | Runtime persistence control |
+| Backend type (filesystem/local_shell) | No | No | Yes | Exec timeout/path may be overridden |
+| Skills paths | No | No | Yes | Defaults to workspace/skills |
+| Memory paths | No | No | Yes | AGENTS.md memory files |
+| Middleware toggles | No | No | Yes | Summarization/memory/etc |
+| Summarization settings | No | No | Yes | Trigger + keep_messages |
+| Task routing | No | No | Yes | Control commands + threshold |
+| Subagents | No | No | Yes | Definitions + tools |
+| interrupt_on (HITL) | No | No | Yes | File/execute approval |
+| Langfuse | No | No | Yes | Env vars override config |
+
 ### MCP Tools (DeepAgents CLI)
 
 nanobot-deep uses DeepAgents CLI MCP discovery via `.mcp.json` files. The nanobot
@@ -214,6 +251,10 @@ Minimal example (add your channels and API keys as needed):
 Note: DeepAgent model/provider selection does not come from this file. It comes
 from `~/.deepagents/config.toml`. The `agents.defaults.model` value is still
 used by non-deep nanobot commands.
+
+DeepAgent context windowing is controlled by `agents.defaults.memoryWindow` in
+`~/.nanobot/config.json`. This value is treated as runtime input and overrides
+any value in `~/.nanobot/deepagents.json`.
 
 ### Required: deepagents-cli config (model/provider)
 

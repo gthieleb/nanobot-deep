@@ -1,0 +1,9 @@
+services:
+  nanobot-deep:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    image: nanobot-deep:dev
+    volumes:
+    - ./nanobot_deep:/app/nanobot_deep
+    - ./templates:/app/templates

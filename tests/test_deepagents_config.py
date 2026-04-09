@@ -39,6 +39,7 @@ class TestDeepAgentsSchema:
         config = DeepAgentsConfig()
 
         assert config.recursion_limit == 500
+        assert config.memory_window is None
         assert config.debug is False
         assert config.name == "nanobot-deep-agent"
         assert config.checkpointer.type == "sqlite"
@@ -360,6 +361,15 @@ class TestMergeWithNanobotConfig:
 
         assert merged.backend.restrict_to_workspace is True
 
+    def test_memory_window_from_nanobot(self):
+        """Test memory_window is merged from nanobot config."""
+        nanobot = self._make_nanobot_config()
+        nanobot.agents.defaults.memory_window = 12
+
+        merged = merge_with_nanobot_config(nanobot)
+
+        assert merged.memory_window == 12
+
     def test_skills_default_to_workspace(self):
         """Test skills path defaults to workspace/skills."""
         nanobot = self._make_nanobot_config(workspace=Path("/my/workspace"))
@@ -503,6 +513,31 @@ class TestConfigPrecedence:
         assert merged.backend.exec_timeout == 120
         assert merged.backend.path_append == "/usr/bin"
         assert merged.backend.restrict_to_workspace is True
+
+    def test_memory_window_precedence(self, tmp_path):
+        """Test nanobot memory_window overrides deepagents.json."""
+        dg_path = tmp_path / "deepagents.json"
+        dg_path.write_text(
+            json.dumps(
+                {
+                    "memory_window": 99,
+                }
+            )
+        )
+
+        mock = MagicMock()
+        mock.agents.defaults.max_tool_iterations = 40
+        mock.agents.defaults.sandbox = "none"
+        mock.agents.defaults.memory_window = 20
+        mock.tools.exec.timeout = 60
+        mock.tools.exec.path_append = ""
+        mock.tools.restrict_to_workspace = False
+        mock.workspace_path = Path("/workspace")
+
+        with patch("nanobot_deep.config.loader.get_deepagents_config_path", return_value=dg_path):
+            merged = merge_with_nanobot_config(mock)
+
+        assert merged.memory_window == 20
 
     def test_subagents_from_deepagents_json(self, tmp_path):
         """Test subagents are loaded from deepagents.json."""

@@ -54,9 +54,28 @@ BASH
 # Runtime stage
 FROM python:3.12-slim
 
-# Install GitHub CLI
+# Install runtime tools
 RUN apt-get update && \
-    apt-get install -y --no-install-recommends gh && \
+    apt-get install -y --no-install-recommends gh git curl ca-certificates && \
+    rm -rf /var/lib/apt/lists/*
+
+# Install Playwright system dependencies (Ubuntu 24.04+)
+RUN apt-get update && \
+    apt-get install -y --no-install-recommends \
+    libnss3 \
+    libatk-bridge2.0-0 \
+    libxss1 \
+    libasound2t64 \
+    libgbm1 \
+    libgtk-3-0t64 \
+    libxshmfence-dev \
+    libxrandr2 \
+    libxcomposite1 \
+    libxcursor1 \
+    libxdamage1 \
+    libxi6 \
+    fonts-noto-color-emoji \
+    fonts-unifont && \
     rm -rf /var/lib/apt/lists/*
 
 # Create non-root user

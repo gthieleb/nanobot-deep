@@ -67,7 +67,7 @@ class DeepGateway:
         self.channels: "ChannelManager" = ChannelManager(config, self.bus)
         self._ensure_custom_telegram_channel()
         self.agent: "DeepAgent | None" = None
-        self.checkpointer: "AsyncSqliteSaver | None" = None
+        self.checkpointer: Any | None = None
         self.mcp_config_path = mcp_config_path
         self.no_mcp = no_mcp
 
@@ -114,24 +114,37 @@ class DeepGateway:
 
         registry.on_register(on_interrupt)
 
-    async def _setup_checkpointer(self) -> "AsyncSqliteSaver":
+    async def _setup_checkpointer(self, deepagents_config) -> Any | None:
         """Create and setup the session checkpointer."""
-        import aiosqlite
-        from langgraph.checkpoint.sqlite.aio import AsyncSqliteSaver
+        ctype = deepagents_config.checkpointer.type
 
-        db_path = self.workspace.parent / "sessions.db"
-        conn = await aiosqlite.connect(str(db_path))
-        checkpointer = AsyncSqliteSaver(conn)
-        await checkpointer.setup()
-        return checkpointer
+        if ctype == "none":
+            return None
+        if ctype == "memory":
+            from langgraph.checkpoint.memory import InMemorySaver
+
+            return InMemorySaver()
+
+        if ctype == "sqlite":
+            import aiosqlite
+            from langgraph.checkpoint.sqlite.aio import AsyncSqliteSaver
+
+            db_path = deepagents_config.get_checkpointer_path()
+            db_path.parent.mkdir(parents=True, exist_ok=True)
+            conn = await aiosqlite.connect(str(db_path))
+            checkpointer = AsyncSqliteSaver(conn)
+            await checkpointer.setup()
+            return checkpointer
+
+        raise ValueError(f"Unknown checkpointer type: {ctype}")
 
     async def _setup_agent(self) -> "DeepAgent":
         """Create the DeepAgent instance."""
         from nanobot_deep.agent.deep_agent import DeepAgent
         from nanobot_deep.config.loader import load_deepagents_config
 
-        self.checkpointer = await self._setup_checkpointer()
         deepagents_config = load_deepagents_config()
+        self.checkpointer = await self._setup_checkpointer(deepagents_config)
 
         agent = DeepAgent(
             workspace=self.workspace,

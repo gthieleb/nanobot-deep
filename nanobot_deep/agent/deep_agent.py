@@ -81,9 +81,22 @@ class DeepAgent:
 
         self.workspace = workspace
         self.config = config
-        self.checkpointer = checkpointer
 
         self.dg_config = merge_with_nanobot_config(config, deepagents_config)
+
+        if checkpointer is not None:
+            from nanobot_deep.langgraph.sanitizing_checkpointer import (
+                wrap_checkpointer_with_sanitizer,
+            )
+            from nanobot_deep.langgraph.windowing_checkpointer import (
+                wrap_checkpointer_with_window,
+            )
+
+            wrapped = wrap_checkpointer_with_sanitizer(checkpointer)
+            wrapped = wrap_checkpointer_with_window(wrapped, self.dg_config.memory_window)
+            self.checkpointer = wrapped
+        else:
+            self.checkpointer = None
 
         self._start_time = time.time()
 
@@ -701,7 +714,9 @@ class DeepAgent:
     def get_history(self, session_key: str, limit: int = 100) -> list[dict]:
         """Get message history for a session."""
         if self.checkpointer:
-            return self.checkpointer.get_session_history(session_key, limit)
+            from nanobot_deep.langgraph.checkpointer import get_session_history
+
+            return get_session_history(self.checkpointer, session_key, limit)
         return []
 
     async def close(self) -> None:

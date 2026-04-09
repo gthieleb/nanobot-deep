@@ -177,22 +177,12 @@ async def create_nanobot_agent_async(
     if backend_type == "local_shell" and interrupt_on and interrupt_on.get("execute"):
         logger.info("HITL enabled for execute tool (security best practice for shell execution)")
 
-    if checkpointer is not None:
-        from nanobot_deep.langgraph.sanitizing_checkpointer import wrap_checkpointer_with_sanitizer
-
-        wrapped_checkpointer = wrap_checkpointer_with_sanitizer(checkpointer)
-        logger.debug(
-            "Checkpointer wrapped with message sanitizer to prevent Pydantic serialization errors"
-        )
-    else:
-        wrapped_checkpointer = None
-
     agent = create_deep_agent(
         model=model,
         tools=tools,
         system_prompt=system_prompt,
         backend=backend,
-        checkpointer=wrapped_checkpointer,
+        checkpointer=checkpointer,
         skills=deepagents_config.get_skills_paths(workspace),
         memory=deepagents_config.get_memory_paths(workspace),
         middleware=middleware,

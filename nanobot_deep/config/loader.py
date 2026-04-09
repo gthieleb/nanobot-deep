@@ -85,6 +85,7 @@ def merge_with_nanobot_config(
 
     nanobot config provides runtime wiring only:
     - max_tool_iterations -> recursion_limit
+    - memory_window
     - tools.exec settings
     - workspace path
 
@@ -116,6 +117,11 @@ def merge_with_nanobot_config(
     defaults = nanobot_config.agents.defaults
 
     merged.recursion_limit = defaults.max_tool_iterations + 10
+
+    memory_window = getattr(defaults, "memory_window", None)
+    if memory_window is None:
+        memory_window = getattr(defaults, "memoryWindow", None)
+    merged.memory_window = memory_window
 
     exec_cfg = getattr(nanobot_config.tools, "exec", None)
     merged.backend.exec_timeout = getattr(exec_cfg, "timeout", merged.backend.exec_timeout)

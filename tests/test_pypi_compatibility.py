@@ -110,6 +110,7 @@ class TestPyPICompatibility:
         merged = merge_with_nanobot_config(nanobot)
 
         assert merged.recursion_limit == 50
+        assert merged.memory_window == 10
         assert merged.backend.exec_timeout == 60
         assert merged.backend.path_append == ""
         assert merged.backend.restrict_to_workspace is False

@@ -176,6 +176,7 @@ class DeepAgentsConfig(BaseConfig):
 
     model: DeepAgentsModelConfig = Field(default_factory=DeepAgentsModelConfig)
     recursion_limit: int = 500
+    memory_window: int | None = None
     debug: bool = False
     name: str = "nanobot-deep-agent"
 

@@ -54,11 +54,19 @@ class TestDeepGateway:
     async def test_gateway_setup_checkpointer(self, tmp_path):
         """Test checkpointer setup."""
         from nanobot_deep.gateway import DeepGateway
+        from nanobot_deep.config.schema import DeepAgentsCheckpointerConfig, DeepAgentsConfig
 
         config = self._create_mock_config(tmp_path)
 
         with patch("nanobot.channels.manager.ChannelManager"):
             gateway = DeepGateway(config, tmp_path)
+
+            deepagents_config = DeepAgentsConfig(
+                checkpointer=DeepAgentsCheckpointerConfig(
+                    type="sqlite",
+                    path=str(tmp_path / "sessions.db"),
+                )
+            )
 
             with patch("aiosqlite.connect", new_callable=AsyncMock) as mock_connect:
                 mock_conn = AsyncMock()
@@ -71,12 +79,50 @@ class TestDeepGateway:
                     mock_checkpointer.setup = AsyncMock()
                     mock_checkpointer_cls.return_value = mock_checkpointer
 
-                    checkpointer = await gateway._setup_checkpointer()
+                    checkpointer = await gateway._setup_checkpointer(deepagents_config)
 
                     assert checkpointer is mock_checkpointer
                     mock_connect.assert_awaited_once()
                     mock_checkpointer_cls.assert_called_once_with(mock_conn)
                     mock_checkpointer.setup.assert_awaited_once()
+
+    @pytest.mark.asyncio
+    async def test_gateway_setup_checkpointer_memory(self, tmp_path):
+        from nanobot_deep.gateway import DeepGateway
+        from nanobot_deep.config.schema import DeepAgentsCheckpointerConfig, DeepAgentsConfig
+
+        config = self._create_mock_config(tmp_path)
+
+        with patch("nanobot.channels.manager.ChannelManager"):
+            gateway = DeepGateway(config, tmp_path)
+
+            deepagents_config = DeepAgentsConfig(
+                checkpointer=DeepAgentsCheckpointerConfig(type="memory")
+            )
+
+            checkpointer = await gateway._setup_checkpointer(deepagents_config)
+
+        from langgraph.checkpoint.memory import InMemorySaver
+
+        assert isinstance(checkpointer, InMemorySaver)
+
+    @pytest.mark.asyncio
+    async def test_gateway_setup_checkpointer_none(self, tmp_path):
+        from nanobot_deep.gateway import DeepGateway
+        from nanobot_deep.config.schema import DeepAgentsCheckpointerConfig, DeepAgentsConfig
+
+        config = self._create_mock_config(tmp_path)
+
+        with patch("nanobot.channels.manager.ChannelManager"):
+            gateway = DeepGateway(config, tmp_path)
+
+            deepagents_config = DeepAgentsConfig(
+                checkpointer=DeepAgentsCheckpointerConfig(type="none")
+            )
+
+            checkpointer = await gateway._setup_checkpointer(deepagents_config)
+
+        assert checkpointer is None
 
     @pytest.mark.asyncio
     async def test_setup_agent_runs_model_validation(self, tmp_path, monkeypatch):

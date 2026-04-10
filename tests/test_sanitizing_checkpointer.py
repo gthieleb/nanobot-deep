@@ -36,6 +36,7 @@ class TestSanitizingCheckpointerWrapper:
         from langchain_core.messages import AIMessage
 
         mock_checkpointer = MagicMock()
+        mock_checkpointer.put.return_value = None
         wrapper = SanitizingCheckpointerWrapper(mock_checkpointer)
 
         checkpoint = {
@@ -47,9 +48,12 @@ class TestSanitizingCheckpointerWrapper:
             }
         }
 
-        sanitized = wrapper._sanitize_checkpoint(checkpoint)
+        wrapper.put({}, checkpoint, {})
 
-        messages = sanitized["channel_values"]["messages"]
+        call_args = mock_checkpointer.put.call_args
+        sanitized_checkpoint = call_args[0][1]  # Get the second argument (checkpoint)
+
+        messages = sanitized_checkpoint["channel_values"]["messages"]
         assert messages[0].additional_kwargs == {}
         assert "reasoning" not in messages[0].additional_kwargs
         assert messages[1].additional_kwargs == {}
@@ -59,20 +63,26 @@ class TestSanitizingCheckpointerWrapper:
         from langchain_core.messages import AIMessage
 
         mock_checkpointer = MagicMock()
+        mock_checkpointer.put_writes.return_value = None
         wrapper = SanitizingCheckpointerWrapper(mock_checkpointer)
 
         writes = [
             ("messages", [AIMessage(content="test", additional_kwargs={"reasoning": 1})]),
         ]
 
-        sanitized = wrapper._sanitize_writes(writes)
+        wrapper.put_writes({}, writes)
 
-        assert sanitized[0][0] == "messages"
-        assert sanitized[0][1][0].additional_kwargs == {}
+        call_args = mock_checkpointer.put_writes.call_args
+        sanitized_writes = call_args[0][1]  # Get the second argument (writes)
+
+        assert sanitized_writes[0][0] == "messages"
+        # Sanitized message should have reasoning removed
+        assert "reasoning" not in sanitized_writes[0][1][0].additional_kwargs
 
     def test_sanitize_non_message_fields_preserved(self):
         """Test that non-message fields are preserved."""
         mock_checkpointer = MagicMock()
+        mock_checkpointer.put.return_value = None
         wrapper = SanitizingCheckpointerWrapper(mock_checkpointer)
 
         checkpoint = {
@@ -82,7 +92,10 @@ class TestSanitizingCheckpointerWrapper:
             }
         }
 
-        sanitized = wrapper._sanitize_checkpoint(checkpoint)
+        wrapper.put({}, checkpoint, {})
+
+        call_args = mock_checkpointer.put.call_args
+        sanitized = call_args[0][1]  # Get the second argument (checkpoint)
 
         assert sanitized["channel_values"]["other_field"] == "value"
         assert sanitized["channel_values"]["count"] == 42
@@ -90,6 +103,7 @@ class TestSanitizingCheckpointerWrapper:
     def test_sanitize_nested_dict(self):
         """Test that nested dicts are sanitized."""
         mock_checkpointer = MagicMock()
+        mock_checkpointer.put.return_value = None
         wrapper = SanitizingCheckpointerWrapper(mock_checkpointer)
 
         checkpoint = {
@@ -100,7 +114,10 @@ class TestSanitizingCheckpointerWrapper:
             }
         }
 
-        sanitized = wrapper._sanitize_checkpoint(checkpoint)
+        wrapper.put({}, checkpoint, {})
+
+        call_args = mock_checkpointer.put.call_args
+        sanitized = call_args[0][1]  # Get the second argument (checkpoint)
 
         assert sanitized["channel_values"]["messages"][0]["nested"] == {"reasoning": 1}
 

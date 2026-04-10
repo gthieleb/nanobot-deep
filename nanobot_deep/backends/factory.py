@@ -34,26 +34,16 @@ def get_available_backends() -> list[BackendType]:
     """
     available = [BackendType.LOCAL, BackendType.STATE]
 
-    try:
-        import langchain_modal
+    import importlib.util
 
+    if importlib.util.find_spec("langchain_modal"):
         available.append(BackendType.MODAL)
-    except ImportError:
-        pass
 
-    try:
-        import langchain_daytona
-
+    if importlib.util.find_spec("langchain_daytona"):
         available.append(BackendType.DAYTONA)
-    except ImportError:
-        pass
 
-    try:
-        import langchain_runloop
-
+    if importlib.util.find_spec("langchain_runloop"):
         available.append(BackendType.RUNLOOP)
-    except ImportError:
-        pass
 
     return available
 

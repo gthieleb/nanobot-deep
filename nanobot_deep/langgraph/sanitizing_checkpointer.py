@@ -107,7 +107,13 @@ class SanitizingCheckpointerWrapper:
         """Delegate all attribute access to wrapped checkpointer."""
         if name == "_checkpointer":
             return object.__getattribute__(self, name)
-        return getattr(self._checkpointer, name)
+        # Check if attribute exists on the wrapper itself first
+        try:
+            attr = object.__getattribute__(self, name)
+            return attr
+        except AttributeError:
+            # If not found on wrapper, delegate to checkpointer
+            return getattr(self._checkpointer, name)
 
     def __getattr__(self, name: str) -> Any:
         """Delegate to wrapped checkpointer for any missing attributes."""

@@ -46,6 +46,7 @@ See the README configuration overview for the active config sources and examples
 ## Documentation Workflow
 
 - Do not open PRs for docs-only changes. Commit directly to `main`.
+- Always open PRs for code changes. Do not commit directly to `main` except for docs.
 
 ## Running Tests
 

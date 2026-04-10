@@ -22,7 +22,6 @@ if TYPE_CHECKING:
     from nanobot.bus.events import InboundMessage, OutboundMessage
 
 
-
 def translate_inbound_to_state(
     msg: "InboundMessage",
     history: list[dict] | None = None,

@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 from pathlib import Path
+from typing import Any
 
 from rich.console import Console
 
@@ -34,8 +35,6 @@ async def run_ralph_mode(
 
     try:
         from deepagents import create_deep_agent
-        from deepagents.backends import FilesystemBackend
-        from deepagents.backends.protocol import BackendFactory, BackendProtocol
         from deepagents.middleware.subagents import GENERAL_PURPOSE_SUBAGENT
     except ImportError as e:
         raise ImportError(
@@ -128,7 +127,7 @@ async def run_ralph_mode(
             console.print(f"  {path.relative_to(workspace)}", style="dim")
 
 
-def _create_backend(sandbox: str, workspace: Path) -> BackendProtocol | BackendFactory:
+def _create_backend(sandbox: str, workspace: Path) -> Any:
     """Create backend based on sandbox type."""
     if sandbox == "none":
         from deepagents.backends import FilesystemBackend

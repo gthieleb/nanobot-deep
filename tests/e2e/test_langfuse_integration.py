@@ -170,16 +170,18 @@ class TestLangfuseGracefulDegradation:
 
         config = DeepAgentsConfig(langfuse=DeepAgentsLangfuseConfig(enabled=False))
 
-        with patch.object(DeepAgent, "_create_agent"):
-            with patch.object(DeepAgent, "_init_model"):
-                with patch.object(DeepAgent, "_init_backend"):
-                    agent = DeepAgent(
-                        workspace=tmp_path,
-                        config=mock_config,
-                        deepagents_config=config,
-                    )
-                    handler = agent._get_langfuse_handler()
-                    assert handler is None
+        from nanobot_deep.agent.factory import _create_backend, _init_model
+
+        with patch("nanobot_deep.agent.factory._init_model"):
+            with patch("nanobot_deep.agent.factory._create_backend"):
+                agent = DeepAgent(
+                    workspace=tmp_path,
+                    config=mock_config,
+                    deepagents_config=config,
+                )
+
+            handler = agent._get_langfuse_handler()
+            assert handler is None
 
     def test_handler_returns_none_on_invalid_credentials(self):
         """Test that handler returns None when credentials are invalid."""
@@ -199,13 +201,15 @@ class TestLangfuseGracefulDegradation:
             )
         )
 
-        with patch.object(DeepAgent, "_create_agent"):
-            with patch.object(DeepAgent, "_init_model"):
-                with patch.object(DeepAgent, "_init_backend"):
-                    agent = DeepAgent(
-                        workspace=Path("/tmp/test"),
-                        config=mock_config,
-                        deepagents_config=config,
-                    )
-                    handler = agent._get_langfuse_handler()
-                    assert handler is None
+        from nanobot_deep.agent.factory import _create_backend, _init_model
+
+        with patch("nanobot_deep.agent.factory._init_model"):
+            with patch("nanobot_deep.agent.factory._create_backend"):
+                agent = DeepAgent(
+                    workspace=Path("/tmp/test"),
+                    config=mock_config,
+                    deepagents_config=config,
+                )
+
+            handler = agent._get_langfuse_handler()
+            assert handler is None

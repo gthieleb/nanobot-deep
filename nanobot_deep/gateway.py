@@ -21,7 +21,6 @@ from typing import TYPE_CHECKING, Any
 from loguru import logger
 
 if TYPE_CHECKING:
-    from langgraph.checkpoint.sqlite.aio import AsyncSqliteSaver
     from nanobot.bus.events import InboundMessage
     from nanobot.bus.queue import MessageBus
     from nanobot.channels.manager import ChannelManager

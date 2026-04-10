@@ -2,16 +2,18 @@
 
 from __future__ import annotations
 
-from typing import TYPE_CHECKING
-
 from loguru import logger
 from nanobot.channels.telegram import TelegramChannel
 from telegram import InlineKeyboardButton, InlineKeyboardMarkup, Update
-from telegram.ext import CallbackQueryHandler, CommandHandler, ContextTypes, MessageHandler, filters
+from telegram.ext import (
+    Application,
+    CallbackQueryHandler,
+    CommandHandler,
+    ContextTypes,
+    MessageHandler,
+    filters,
+)
 from telegram.request import HTTPXRequest
-
-if TYPE_CHECKING:
-    from telegram.ext import Application
 
 from nanobot_deep.langgraph.interrupt_registry import (
     REGISTRY,

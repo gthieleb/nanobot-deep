@@ -206,7 +206,6 @@ def agent(
     async def _create_checkpointer():
         nonlocal checkpointer_conn
         import aiosqlite
-
         from langgraph.checkpoint.sqlite.aio import AsyncSqliteSaver
 
         conn = await aiosqlite.connect(str(db_path))

@@ -57,7 +57,7 @@ jobs:
             --cov=nanobot_deep \
             --cov-report=xml \
             --cov-report=term \
-            --cov-fail-under=80 || true
+            --cov-fail-under=80
 
       - name: Upload coverage to Codecov
         uses: codecov/codecov-action@v4
@@ -109,12 +109,12 @@ jobs:
       - name: Run ruff check
         run: |
           . .venv/bin/activate
-          ruff check nanobot_deep/ || true
+          ruff check nanobot_deep/
 
       - name: Run ruff format check
         run: |
           . .venv/bin/activate
-          ruff format --check nanobot_deep/ || true
+          ruff format --check nanobot_deep/
 
   versioning:
     name: Semantic Versioning

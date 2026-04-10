@@ -21,7 +21,6 @@ if TYPE_CHECKING:
     from langgraph.checkpoint.sqlite.aio import AsyncSqliteSaver
     from nanobot.bus.events import InboundMessage, OutboundMessage
 
-    from nanobot_deep.langgraph.checkpointer import SessionCheckpointer
 
 
 def translate_inbound_to_state(

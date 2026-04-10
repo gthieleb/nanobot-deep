@@ -11,11 +11,11 @@ from nanobot_deep.config.loader import (
 from nanobot_deep.config.schema import DeepAgentsConfig
 from nanobot_deep.langgraph import (
     LangGraphBridge,
+    extract_reply_context,
     get_session_history,
+    should_delegate_task,
     translate_inbound_to_state,
     translate_result_to_outbound,
-    extract_reply_context,
-    should_delegate_task,
 )
 
 __all__ = [

@@ -511,6 +511,18 @@ See `README.md` Developer Guide section for complete documentation on:
 - Examples for each commit type
 - CI/CD integration details
 
+## Coding Standard
+
+Für jeden Code-Change gilt zwingend:
+
+1. **Unit Tests** schreiben/aktualisieren — `pytest` muss grün sein
+2. **Commit** mit Conventional Commit Format (feat/fix/chore/…)
+3. **PR** erstellen — kein direkter Push auf `main`
+
+**Ausnahme**: Docs-only Änderungen (README, AGENTS.md, Kommentare) dürfen direkt auf `main` committet werden.
+
+Kein Merge ohne grüne Tests und bestandenes Linting.
+
 ## Task Delegation
 
 **Always spawn tasks to subagents** for complex, multi-step, or parallel work. Prefer the `@ai-*` agents available in the opencode-skills repository.

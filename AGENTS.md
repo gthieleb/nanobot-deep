@@ -282,6 +282,15 @@ gh issue edit <issue_number> --add-label "<label-name>"
 - If checks are running or unknown, say so explicitly.
 - Do not claim approvals or merge readiness unless verified by GitHub.
 - If you cannot check status, state that clearly instead of speculating.
+- After every commit and push, check the current pipeline for this repo with the GitHub CLI:
+
+```bash
+# List recent runs for the current branch
+gh run list --limit 5 --branch "$(git branch --show-current)"
+
+# Inspect the most recent run (replace with actual run ID)
+gh run view <run-id>
+```
 
 ### Creating GitHub Issues
 

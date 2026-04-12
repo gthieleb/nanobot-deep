@@ -57,14 +57,20 @@ class TestE2ELiveModelConfig:
 
     def test_live_model_result_skips_when_model_config_invalid(self, monkeypatch):
         e2e_conftest = _load_e2e_conftest_module()
-        from deepagents_cli.config import ModelConfigError
+        from nanobot_deep.config.deepagents_cli import resolve_deepagents_cli
+
+        cli_bundle = resolve_deepagents_cli()
+        if not cli_bundle:
+            pytest.skip("deepagents-cli not installed")
+
+        _, model_config_error, _, _ = cli_bundle
 
         monkeypatch.setenv("DEEPAGENTS_TEST_MODEL", "invalid:model")
         monkeypatch.delenv("NANOBOT_TEST_MODEL", raising=False)
         monkeypatch.delenv("NANOBOT_TEST_API_KEY", raising=False)
 
         def raise_model_error(_model_spec):
-            raise ModelConfigError("bad model")
+            raise model_config_error("bad model")
 
         monkeypatch.setattr("deepagents_cli.config.create_model", raise_model_error)
 

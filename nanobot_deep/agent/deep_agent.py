@@ -271,10 +271,13 @@ class DeepAgent:
             return None
 
     def _resolve_model_label(self) -> str:
-        try:
-            from deepagents_cli.config import ModelConfigError, create_model
-        except ImportError:
+        from nanobot_deep.config.deepagents_cli import resolve_deepagents_cli
+
+        cli_bundle = resolve_deepagents_cli()
+        if not cli_bundle:
             return "unavailable (deepagents-cli missing)"
+
+        create_model, model_config_error, _, _ = cli_bundle
 
         import os
 
@@ -290,7 +293,7 @@ class DeepAgent:
 
         try:
             result = create_model(model_spec=model_spec, extra_kwargs=extra_kwargs)
-        except ModelConfigError:
+        except model_config_error:
             return "unconfigured (deepagents config)"
 
         provider = result.provider or "unknown"

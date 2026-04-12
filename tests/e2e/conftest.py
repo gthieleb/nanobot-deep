@@ -98,9 +98,16 @@ def _apply_test_api_key_override(model_spec: str | None, test_api_key: str) -> s
 @pytest.fixture
 def live_model_result():
     """Resolve a DeepAgents model for live tests using DeepAgents config."""
-    from deepagents_cli.config import ModelConfigError, create_model
+    from nanobot_deep.config.deepagents_cli import (
+        apply_deepagents_config_path,
+        resolve_deepagents_cli,
+    )
 
-    from nanobot_deep.config.deepagents_cli import apply_deepagents_config_path
+    cli_bundle = resolve_deepagents_cli()
+    if not cli_bundle:
+        pytest.skip("deepagents-cli not installed")
+
+    create_model, model_config_error, _, _ = cli_bundle
 
     model_spec = os.environ.get("DEEPAGENTS_TEST_MODEL") or os.environ.get("NANOBOT_TEST_MODEL")
     test_api_key = os.environ.get("NANOBOT_TEST_API_KEY")
@@ -112,7 +119,7 @@ def live_model_result():
     apply_deepagents_config_path()
     try:
         return create_model(model_spec)
-    except ModelConfigError as e:
+    except model_config_error as e:
         pytest.skip(
             "DeepAgents model config is not ready for live tests: "
             f"{e}. Configure ~/.deepagents/config.toml (or set DEEPAGENTS_CONFIG_PATH) "

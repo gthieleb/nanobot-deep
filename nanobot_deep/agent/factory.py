@@ -10,7 +10,7 @@ from typing import TYPE_CHECKING, Any
 
 from loguru import logger
 
-from nanobot_deep.config.deepagents_cli import apply_deepagents_config_path
+from nanobot_deep.config.deepagents_cli import apply_deepagents_config_path, resolve_deepagents_cli
 
 if TYPE_CHECKING:
     from nanobot.config.schema import Config
@@ -28,15 +28,13 @@ except ImportError:
     DEEPAGENTS_AVAILABLE = False
     create_deep_agent = None
 
-try:
-    from deepagents_cli.config import ModelConfigError, create_model
-    from deepagents_cli.mcp_tools import resolve_and_load_mcp_tools
-    from deepagents_cli.project_utils import ProjectContext
-
+cli_bundle = resolve_deepagents_cli()
+if cli_bundle:
+    create_model, ModelConfigError, resolve_and_load_mcp_tools, ProjectContext = cli_bundle
     CLI_AVAILABLE = True
-except ImportError:
+else:
     CLI_AVAILABLE = False
-    ModelConfigError = None
+    ModelConfigError = Exception
     create_model = None
     resolve_and_load_mcp_tools = None
     ProjectContext = None

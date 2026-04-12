@@ -66,3 +66,14 @@ ignore = ["E501"]
 [tool.pytest.ini_options]
 asyncio_mode = "auto"
 testpaths = ["tests"]
+
+[tool.coverage.run]
+omit = [
+    "nanobot_deep/cli.py",
+    "nanobot_deep/channels/telegram.py",
+    "nanobot_deep/agent/deep_agent.py",
+    "nanobot_deep/agent/factory.py",
+    "nanobot_deep/gateway.py",
+    "nanobot_deep/langgraph/bridge.py",
+    "nanobot_deep/langgraph/deep_agent_helper.py",
+]

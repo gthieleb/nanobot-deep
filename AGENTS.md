@@ -239,29 +239,59 @@ gh issue view 12
 
 ### GitHub Projects
 
-Issue management happens via GitHub Projects. Add new issues to the project and assign labels.
+Issue management happens via GitHub Projects. The project board is the **living roadmap** — every issue must be tracked there with correct Phase and Priority.
 
 **Project:** `Nanobot-Deep Dev`
+**URL:** https://github.com/users/gthieleb/projects/2
 
 **Project Details:**
 ```bash
-# List projects
-gh project list --owner gthieleb
-
 # Current project ID: PVT_kwHOAUWB9M4BTwAw
 # Owner: gthieleb
 # Repository: nanobot-deep
 ```
 
-**Adding Issues to Project:**
-```bash
-# Add issue to project
-gh issue edit <issue_number> --add-project "Nanobot-Deep Dev"
+**Project Fields:**
 
-# Add labels (create if needed)
-gh label create "<label-name>" --description "<description>"
-gh issue edit <issue_number> --add-label "<label-name>"
-```
+| Field | Type | Values |
+|-------|------|--------|
+| Status | SingleSelect | Backlog, Blocked, WIP, Progress, Review, Done |
+| Phase | SingleSelect | Phase 0 ✅, Phase 1, Phase 2, Phase 3, Phase 4, Infrastructure, Backlog |
+| Priority | SingleSelect | P0, P1 (high), P2 (med), P3 (low), P4 |
+
+**Views (filtered by Phase):**
+
+| View | Layout | Filter | Purpose |
+|------|--------|--------|---------|
+| Phase 1 – Core | Board | `phase:Phase 1` | Current sprint (default view) |
+| Phase 2 – Infra | Board | `phase:Phase 2` | Infrastructure stack |
+| Phase 3 – Runtime | Board | `phase:Phase 3` | Runtime features |
+| Phase 4 – Sandbox | Board | `phase:Phase 4` | Sandbox & quality |
+| Infrastructure | Table | `phase:Infrastructure` | Parallel infra track |
+| Backlog | Table | `phase:Backlog` | Deferred items |
+| All Issues | Table | *(none)* | Full overview, grouped by Phase |
+
+**When working on a ticket, ALWAYS:**
+
+1. **Set Phase** in the project board (must match `phase-*` label):
+   ```bash
+   # Add to project (if not already there)
+   gh project item-add 2 --owner gthieleb --url "https://github.com/gthieleb/nanobot-deep/issues/<number>"
+
+   # Set Phase field via GraphQL
+   # Phase IDs: Phase 1=5207c14c, Phase 2=a09362dc, Phase 3=c455fbba, Phase 4=f6aac7ea, Infrastructure=c4cffe46, Backlog=3c2b4c7d
+   ```
+
+2. **Set Priority** (map from label):
+   - `priority-high` → P1 (`48e866c1`)
+   - `priority-med` → P2 (`b3e58537`)
+   - `priority-low` → P3 (`5125f12b`)
+
+3. **Update Status** as work progresses:
+   - Starting work → **WIP**
+   - Blocked by dependency → **Blocked**
+   - PR created → **Review**
+   - Merged → **Done**
 
 **Available Labels:**
 | Label | Description |
@@ -269,11 +299,18 @@ gh issue edit <issue_number> --add-label "<label-name>"
 | `enhancement` | New feature or request |
 | `bug` | Something isn't working |
 | `documentation` | Improvements or additions to docs |
+| `infra` | Infrastructure, deployment, Docker, Vault, LiteLLM-proxy |
+| `observability` | Logging, tracing, Langfuse, OTEL, error diagnostics |
 | `phase-1` through `phase-4` | Development phases |
+| `backlog` | Deferred / low priority |
 | `priority-high`, `priority-med`, `priority-low` | Priority levels |
 | `planning-agent` | Planning agent pattern |
 | `authorization` | Authorization and permission handling |
 | `hitl` | Human-in-the-loop interrupts |
+| `analysis` | Analysis and research ticket |
+| `langgraph` | LangGraph integration |
+| `tbd` | Needs prioritization/scope |
+<!-- OMO_INTERNAL_INITIATOR -->
 
 ### PR and Pipeline Status
 

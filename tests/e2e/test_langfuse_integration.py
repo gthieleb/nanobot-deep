@@ -170,7 +170,6 @@ class TestLangfuseGracefulDegradation:
 
         config = DeepAgentsConfig(langfuse=DeepAgentsLangfuseConfig(enabled=False))
 
-        from nanobot_deep.agent.factory import _create_backend, _init_model
 
         with patch("nanobot_deep.agent.factory._init_model"):
             with patch("nanobot_deep.agent.factory._create_backend"):
@@ -201,7 +200,6 @@ class TestLangfuseGracefulDegradation:
             )
         )
 
-        from nanobot_deep.agent.factory import _create_backend, _init_model
 
         with patch("nanobot_deep.agent.factory._init_model"):
             with patch("nanobot_deep.agent.factory._create_backend"):

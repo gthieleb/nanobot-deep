@@ -10,7 +10,6 @@ SESSION_PATH = PROJECT_ROOT / "tests/e2e/test_session_user"
 async def create_group():
     from telethon import TelegramClient
     from telethon.tl.functions.channels import CreateChannelRequest
-    from telethon.tl.types import InputChannelEmpty
 
     api_id = int(os.environ["TELEGRAM_API_ID"])
     # Use raw string to avoid quote issues
@@ -18,7 +17,7 @@ async def create_group():
     phone = os.environ["TEST_USER_PHONE"]
     bot_username = os.environ.get("TELEGRAM_BOT_USERNAME", "").lstrip("@")
 
-    print(f"Creating group 'nanobot-deep-ci'...")
+    print("Creating group 'nanobot-deep-ci'...")
     print(f"Authenticated as: {phone}")
     print(f"Bot to invite: @{bot_username}")
 
@@ -72,7 +71,7 @@ async def create_group():
         with open(env_file, "w") as f:
             f.write("\n".join(new_lines))
 
-        print(f"Environment file updated!")
+        print("Environment file updated!")
 
     except Exception as e:
         print(f"Error: {e}")

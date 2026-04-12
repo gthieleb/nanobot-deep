@@ -2,7 +2,6 @@
 
 from __future__ import annotations
 
-from pathlib import Path
 from unittest.mock import AsyncMock, MagicMock, patch
 
 import pytest
@@ -80,7 +79,6 @@ class TestDeepAgentModelInit:
         from nanobot_deep.agent.factory import _init_model
         from nanobot_deep.config.schema import DeepAgentsConfig, DeepAgentsModelConfig
 
-        config = self._create_mock_config(tmp_path)
         dg_config = DeepAgentsConfig(
             model=DeepAgentsModelConfig(
                 name="openai/gpt-4",
@@ -106,7 +104,6 @@ class TestDeepAgentModelInit:
         from nanobot_deep.agent.factory import _init_model
         from nanobot_deep.config.schema import DeepAgentsConfig
 
-        config = self._create_mock_config(tmp_path)
         dg_config = DeepAgentsConfig()
 
         monkeypatch.setenv("DEEPAGENTS_TEST_MODEL", "openai:gpt-4o-mini")

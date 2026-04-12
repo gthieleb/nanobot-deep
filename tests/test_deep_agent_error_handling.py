@@ -4,6 +4,7 @@ from __future__ import annotations
 
 from types import SimpleNamespace
 from unittest.mock import MagicMock, patch
+
 import pytest
 
 from nanobot_deep.agent.deep_agent import DeepAgent
@@ -35,10 +36,10 @@ def test_auth_error_message_is_precise() -> None:
 
 
 def test_timeout_error_message_is_precise() -> None:
-    class Timeout(Exception):
+    class TimeoutError(Exception):
         pass
 
-    msg = DeepAgent._format_user_facing_error(Timeout("request timed out"))
+    msg = DeepAgent._format_user_facing_error(TimeoutError("request timed out"))
     assert "timeout" in msg.lower() or "connectivity" in msg.lower()
 
 

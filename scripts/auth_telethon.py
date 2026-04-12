@@ -10,7 +10,6 @@ import asyncio
 import os
 from pathlib import Path
 
-
 PROJECT_ROOT = Path(__file__).parent.parent
 SESSION_PATH = PROJECT_ROOT / "tests" / "e2e" / "test_session_user"
 

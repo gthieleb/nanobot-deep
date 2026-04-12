@@ -30,8 +30,7 @@ from __future__ import annotations
 import asyncio
 import os
 from pathlib import Path
-from typing import cast
-from typing import TYPE_CHECKING
+from typing import TYPE_CHECKING, cast
 
 import pytest
 
@@ -100,6 +99,7 @@ def _apply_test_api_key_override(model_spec: str | None, test_api_key: str) -> s
 def live_model_result():
     """Resolve a DeepAgents model for live tests using DeepAgents config."""
     from deepagents_cli.config import ModelConfigError, create_model
+
     from nanobot_deep.config.deepagents_cli import apply_deepagents_config_path
 
     model_spec = os.environ.get("DEEPAGENTS_TEST_MODEL") or os.environ.get("NANOBOT_TEST_MODEL")
@@ -150,8 +150,8 @@ async def live_gateway(
         - agent: DeepAgent instance
         - provider: DeepAgents provider name
     """
-    from nanobot.agent.loop import AgentLoop
     from nanobot.bus.queue import MessageBus
+
     from nanobot_deep.agent.deep_agent import DeepAgent
 
     bus = MessageBus()
@@ -213,8 +213,8 @@ async def live_gateway_no_cancel(
     live_model_result,
 ):
     """Start DeepAgent gateway without auto-cancellation."""
-    from nanobot.agent.loop import AgentLoop
     from nanobot.bus.queue import MessageBus
+
     from nanobot_deep.agent.deep_agent import DeepAgent
 
     bus = MessageBus()
@@ -403,8 +403,8 @@ async def live_deep_gateway(
         - consumer_task: Background task consuming from bus
     """
     from nanobot.bus.queue import MessageBus
+
     from nanobot_deep.agent.deep_agent import DeepAgent
-    from nanobot_deep.gateway import DeepGateway
 
     bus = MessageBus()
 
@@ -620,8 +620,9 @@ async def telegram_send_and_wait(telegram_user_client, telegram_bot_entity):
         response = await telegram_send_and_wait("Hello")
         assert response.message.lower() == "pong"
     """
-    from telethon.tl.types import Message
     import os
+
+    from telethon.tl.types import Message
 
     bot_username = os.environ.get("TELEGRAM_BOT_USERNAME", "").lstrip("@")
     mode = os.environ.get("TELEGRAM_LOCAL_MODE", "dm").lower()

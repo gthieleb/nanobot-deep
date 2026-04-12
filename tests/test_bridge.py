@@ -2,9 +2,7 @@
 
 from __future__ import annotations
 
-import pytest
-
-from langchain_core.messages import HumanMessage, AIMessage, ToolMessage, SystemMessage
+from langchain_core.messages import AIMessage, HumanMessage, SystemMessage, ToolMessage
 
 
 class TestTranslateInboundToState:
@@ -13,6 +11,7 @@ class TestTranslateInboundToState:
     def test_simple_text_message(self):
         """Test basic text message conversion."""
         from nanobot.bus.events import InboundMessage
+
         from nanobot_deep.langgraph.bridge import translate_inbound_to_state
 
         msg = InboundMessage(
@@ -32,6 +31,7 @@ class TestTranslateInboundToState:
     def test_message_with_system_prompt(self):
         """Test message with system prompt prepended."""
         from nanobot.bus.events import InboundMessage
+
         from nanobot_deep.langgraph.bridge import translate_inbound_to_state
 
         msg = InboundMessage(
@@ -51,6 +51,7 @@ class TestTranslateInboundToState:
     def test_message_with_history(self):
         """Test message with conversation history."""
         from nanobot.bus.events import InboundMessage
+
         from nanobot_deep.langgraph.bridge import translate_inbound_to_state
 
         msg = InboundMessage(
@@ -77,6 +78,7 @@ class TestTranslateInboundToState:
     def test_message_with_reply_context(self):
         """Test message with reply-to context."""
         from nanobot.bus.events import InboundMessage
+
         from nanobot_deep.langgraph.bridge import translate_inbound_to_state
 
         msg = InboundMessage(
@@ -105,6 +107,7 @@ class TestTranslateResultToOutbound:
     def test_simple_ai_response(self):
         """Test converting simple AI response."""
         from nanobot.bus.events import InboundMessage
+
         from nanobot_deep.langgraph.bridge import translate_result_to_outbound
 
         msg = InboundMessage(
@@ -129,8 +132,9 @@ class TestTranslateResultToOutbound:
 
     def test_result_with_tool_messages(self):
         """Test result with tool messages finds AI response."""
-        from nanobot.bus.events import InboundMessage
         from langchain_core.messages import ToolCall
+        from nanobot.bus.events import InboundMessage
+
         from nanobot_deep.langgraph.bridge import translate_result_to_outbound
 
         msg = InboundMessage(
@@ -161,6 +165,7 @@ class TestTranslateResultToOutbound:
     def test_empty_result(self):
         """Test handling of empty result."""
         from nanobot.bus.events import InboundMessage
+
         from nanobot_deep.langgraph.bridge import translate_result_to_outbound
 
         msg = InboundMessage(
@@ -179,6 +184,7 @@ class TestTranslateResultToOutbound:
     def test_preserves_metadata(self):
         """Test that metadata is preserved in outbound."""
         from nanobot.bus.events import InboundMessage
+
         from nanobot_deep.langgraph.bridge import translate_result_to_outbound
 
         msg = InboundMessage(
@@ -202,6 +208,7 @@ class TestExtractReplyContext:
     def test_no_metadata(self):
         """Test message without metadata."""
         from nanobot.bus.events import InboundMessage
+
         from nanobot_deep.langgraph.bridge import extract_reply_context
 
         msg = InboundMessage(
@@ -216,6 +223,7 @@ class TestExtractReplyContext:
     def test_with_reply_context(self):
         """Test message with reply context."""
         from nanobot.bus.events import InboundMessage
+
         from nanobot_deep.langgraph.bridge import extract_reply_context
 
         msg = InboundMessage(
@@ -245,6 +253,7 @@ class TestShouldDelegateTask:
     def test_control_command_not_delegated(self):
         """Test control commands are not delegated."""
         from nanobot.bus.events import InboundMessage
+
         from nanobot_deep.langgraph.bridge import should_delegate_task
 
         msg = InboundMessage(
@@ -264,6 +273,7 @@ class TestShouldDelegateTask:
     def test_reply_message_delegated(self):
         """Test reply messages are delegated when enabled."""
         from nanobot.bus.events import InboundMessage
+
         from nanobot_deep.langgraph.bridge import should_delegate_task
 
         msg = InboundMessage(
@@ -288,6 +298,7 @@ class TestShouldDelegateTask:
     def test_reply_delegation_disabled(self):
         """Test reply messages not delegated when disabled."""
         from nanobot.bus.events import InboundMessage
+
         from nanobot_deep.langgraph.bridge import should_delegate_task
 
         msg = InboundMessage(
@@ -308,6 +319,7 @@ class TestShouldDelegateTask:
     def test_regular_message_not_delegated(self):
         """Test regular messages are not delegated."""
         from nanobot.bus.events import InboundMessage
+
         from nanobot_deep.langgraph.bridge import should_delegate_task
 
         msg = InboundMessage(
@@ -329,6 +341,7 @@ class TestFullMessageFlow:
     def test_inbound_to_outbound_roundtrip(self):
         """Test complete roundtrip: InboundMessage -> State -> Result -> OutboundMessage."""
         from nanobot.bus.events import InboundMessage
+
         from nanobot_deep.langgraph.bridge import (
             translate_inbound_to_state,
             translate_result_to_outbound,
@@ -365,6 +378,7 @@ class TestEdgeCases:
     def test_empty_content(self):
         """Test handling of empty message content."""
         from nanobot.bus.events import InboundMessage
+
         from nanobot_deep.langgraph.bridge import translate_inbound_to_state
 
         msg = InboundMessage(
@@ -382,6 +396,7 @@ class TestEdgeCases:
     def test_very_long_content(self):
         """Test handling of very long message content."""
         from nanobot.bus.events import InboundMessage
+
         from nanobot_deep.langgraph.bridge import translate_inbound_to_state
 
         long_content = "x" * 10000
@@ -400,6 +415,7 @@ class TestEdgeCases:
     def test_special_characters_in_content(self):
         """Test handling of special characters in content."""
         from nanobot.bus.events import InboundMessage
+
         from nanobot_deep.langgraph.bridge import translate_inbound_to_state
 
         special_content = "Hello\n\tWorld! @#$%^&*() 你好"
@@ -417,6 +433,7 @@ class TestEdgeCases:
     def test_tool_message_in_history(self):
         """Test handling of tool messages in history."""
         from nanobot.bus.events import InboundMessage
+
         from nanobot_deep.langgraph.bridge import translate_inbound_to_state
 
         msg = InboundMessage(
@@ -444,6 +461,7 @@ class TestEdgeCases:
     def test_result_with_only_tool_message(self):
         """Test result that only has tool messages, no AI response."""
         from nanobot.bus.events import InboundMessage
+
         from nanobot_deep.langgraph.bridge import translate_result_to_outbound
 
         msg = InboundMessage(
@@ -468,6 +486,7 @@ class TestEdgeCases:
     def test_result_with_non_message_objects(self):
         """Test result with objects that have content attribute."""
         from nanobot.bus.events import InboundMessage
+
         from nanobot_deep.langgraph.bridge import translate_result_to_outbound
 
         msg = InboundMessage(

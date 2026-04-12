@@ -53,8 +53,8 @@ class TestDeepGateway:
     @pytest.mark.asyncio
     async def test_gateway_setup_checkpointer(self, tmp_path):
         """Test checkpointer setup."""
-        from nanobot_deep.gateway import DeepGateway
         from nanobot_deep.config.schema import DeepAgentsCheckpointerConfig, DeepAgentsConfig
+        from nanobot_deep.gateway import DeepGateway
 
         config = self._create_mock_config(tmp_path)
 
@@ -88,8 +88,8 @@ class TestDeepGateway:
 
     @pytest.mark.asyncio
     async def test_gateway_setup_checkpointer_memory(self, tmp_path):
-        from nanobot_deep.gateway import DeepGateway
         from nanobot_deep.config.schema import DeepAgentsCheckpointerConfig, DeepAgentsConfig
+        from nanobot_deep.gateway import DeepGateway
 
         config = self._create_mock_config(tmp_path)
 
@@ -108,8 +108,8 @@ class TestDeepGateway:
 
     @pytest.mark.asyncio
     async def test_gateway_setup_checkpointer_none(self, tmp_path):
-        from nanobot_deep.gateway import DeepGateway
         from nanobot_deep.config.schema import DeepAgentsCheckpointerConfig, DeepAgentsConfig
+        from nanobot_deep.gateway import DeepGateway
 
         config = self._create_mock_config(tmp_path)
 

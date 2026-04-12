@@ -1,12 +1,11 @@
 """Tests for HITL interrupt registry."""
 
-import asyncio
 
 import pytest
 
 from nanobot_deep.langgraph.interrupt_registry import (
-    PendingInterrupt,
     InterruptRegistry,
+    PendingInterrupt,
     format_interrupt_message,
 )
 

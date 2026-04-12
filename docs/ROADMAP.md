@@ -31,9 +31,11 @@ Active work tracked in GitHub issues:
 **Blockers (must resolve before completion):**
 - #121 SanitizingCheckpointerWrapper fails langgraph isinstance check
 - #128 Docker Session Checkpointer Permission Error
+- #41 Zhipu provider fails via ChatLiteLLM
 
 **Configuration:**
 - #37 Configuration strategy for DeepAgent settings
+- #24 Evaluate docs/tickets approach vs GitHub Issues
 
 **Commands (Telegram-first):**
 - #65 DeepAgents slash commands via Telegram (epic)
@@ -44,6 +46,7 @@ Active work tracked in GitHub issues:
 - #131 vault-user-provisioning (safe secret provisioning)
 - #36 Integrate deepagents-cli SDK into nanobot gateway
 - #34 Wire memoryWindow from config.json into runtime
+- #71 Stream event naming fragility and output capture strategy
 
 **Quality:**
 - #99 Tests expect ChatLiteLLM but create_model resolves from config
@@ -54,7 +57,6 @@ Focus: Deployable infrastructure for Vault + LiteLLM-proxy + Observability.
 
 **Vault:**
 - #134 Vault setup and integration *(new)*
-- #131 vault-user-provisioning (OIDC-based secret provisioning)
 - #136 Agent reads secrets from Vault via MCP *(new)*
 
 **LiteLLM Proxy:**
@@ -85,17 +87,18 @@ Focus: Deployable infrastructure for Vault + LiteLLM-proxy + Observability.
 - #57 Heartbeat mode
 - #7 Cron integration evaluation
 - #116 Pydantic serialization error with LangChain message chunks
-- #125 Auto-approve HITL logic (if not completed in Phase 2)
 - #35 Analysis: replace custom DeepAgent runtime with upstream CLI
 - #38 Analysis: DeepAgents frontend features support
 - #39 Analysis: Partial support gaps for DeepAgents features
 
-### Phase 4: Sandbox Research and Delivery (Planned)
+### Phase 4: Sandbox, Quality and User Features (Planned)
 
 - #53 Docker sandbox analysis
 - #54 Kubernetes/Podman research
 - #55 Docker sandbox MVP implementation
+- #40 Resolve deepagents-cli/daytona websockets version conflict
 - #50 Media processing
+- #51 README overhaul for architecture, setup, and workflows
 - #52 Unit test coverage expansion
 - #56 Chat vs Agent mode toggle
 - #58 Speech-to-text

@@ -35,7 +35,6 @@ async def get_group_by_name(group_name: str):
     api_id = int(os.environ["TELEGRAM_API_ID"])
     # Use raw string to avoid quote issues
     api_hash = os.environ["TELEGRAM_API_HASH"]
-    phone = os.environ["TEST_USER_PHONE"]
 
     client = TelegramClient(str(SESSION_PATH), api_id, api_hash)
 
@@ -43,7 +42,7 @@ async def get_group_by_name(group_name: str):
         await client.connect()
 
         if not await client.is_user_authorized():
-            print(f"User not authorized. Please run scripts/auth_telethon.py first.")
+            print("User not authorized. Please run scripts/auth_telethon.py first.")
             return None
 
         print(f"Searching for group: '{group_name}'...")
@@ -67,16 +66,16 @@ async def get_group_by_name(group_name: str):
                     )
 
                     # Also output environment format
-                    print(f"\nEnvironment export:")
+                    print("\nEnvironment export:")
                     print(f"  export TELEGRAM_CI_GROUP_ID={group_id}")
 
                     return group_id
 
         print(f"Group '{group_name}' not found!")
-        print(f"\nSearching all groups for matching patterns...")
-        print(f"Look for:")
-        print(f"  - Similar group names")
-        print(f"  - Case-insensitive search")
+        print("\nSearching all groups for matching patterns...")
+        print("Look for:")
+        print("  - Similar group names")
+        print("  - Case-insensitive search")
 
         return None
 
@@ -99,14 +98,14 @@ async def main():
     group_id = await get_group_by_name(group_name)
 
     if group_id:
-        print(f"\nSUCCESS! Use this ID in environment:")
+        print("\nSUCCESS! Use this ID in environment:")
         print(f"export TELEGRAM_CI_GROUP_ID={group_id}")
         sys.exit(0)
     else:
-        print(f"\nGroup not found. Manual steps:")
+        print("\nGroup not found. Manual steps:")
         print(f"1. Check in Telegram app for group '{group_name}'")
-        print(f"2. Note the exact group name (case-sensitive)")
-        print(f"3. Run this script again")
+        print("2. Note the exact group name (case-sensitive)")
+        print("3. Run this script again")
         sys.exit(1)
 
 

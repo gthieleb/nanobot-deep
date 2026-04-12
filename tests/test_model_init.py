@@ -2,10 +2,7 @@
 
 from __future__ import annotations
 
-from pathlib import Path
 from unittest.mock import MagicMock, patch
-
-import pytest
 
 
 class TestModelInit:
@@ -102,7 +99,6 @@ class TestDeepAgentModelInit:
         """Test that model names are passed to ChatLiteLLM without parsing."""
         from nanobot_deep.agent.factory import _init_model
 
-        config = self._create_mock_config("anthropic/claude-sonnet-4-5")
         merged_config = self._create_mock_merged_config()
 
         mock_result = MagicMock()
@@ -119,7 +115,6 @@ class TestDeepAgentModelInit:
         """Test custom provider model name is preserved."""
         from nanobot_deep.agent.factory import _init_model
 
-        config = self._create_mock_config("zai/glm-4.7")
         merged_config = self._create_mock_merged_config()
 
         mock_result = MagicMock()
@@ -136,7 +131,6 @@ class TestDeepAgentModelInit:
         """Test that deepagents config model overrides nanobot config."""
         from nanobot_deep.agent.factory import _init_model
 
-        config = self._create_mock_config("anthropic/claude-sonnet-4-5")
         merged_config = self._create_mock_merged_config(model_name="openai/gpt-4o")
 
         mock_result = MagicMock()

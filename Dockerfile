@@ -80,8 +80,8 @@ RUN apt-get update && \
 
 # Create non-root user
 RUN useradd -m -u 1000 -s /bin/bash nanobot && \
-    mkdir -p /home/nanobot/.nanobot/workspace && \
-    chown -R nanobot:nanobot /home/nanobot
+    mkdir -p /app/.nanobot/workspace /app/.deepagents /app/.config/gh && \
+    chown -R nanobot:nanobot /app
 
 WORKDIR /app
 
@@ -95,7 +95,11 @@ COPY --chown=nanobot:nanobot templates /app/templates
 # Set up environment
 ENV PATH="/app/.venv/bin:$PATH" \
     PYTHONUNBUFFERED=1 \
-    NANOBOT_WORKSPACE=/home/nanobot/.nanobot/workspace
+    HOME=/app \
+    XDG_CONFIG_HOME=/app/.config \
+    NANOBOT_CONFIG_PATH=/app/.nanobot/config.json \
+    DEEPAGENTS_CONFIG_PATH=/app/.deepagents/config.toml \
+    NANOBOT_WORKSPACE=/app/.nanobot/workspace
 
 # Switch to non-root user
 USER nanobot
@@ -104,5 +108,5 @@ USER nanobot
 HEALTHCHECK --interval=30s --timeout=10s --start-period=40s --retries=3 \
     CMD python -c "import sys; sys.exit(0)"
 
-# Default command (can be overridden)
-CMD ["python", "-m", "nanobot_deep.gateway"]
+ENTRYPOINT ["python", "-m", "nanobot_deep.cli"]
+CMD ["gateway"]

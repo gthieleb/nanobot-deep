@@ -14,7 +14,6 @@ The script monitors the gateway log and correlates with sent messages.
 """
 
 import asyncio
-import time
 from datetime import datetime
 from pathlib import Path
 
@@ -143,7 +142,7 @@ TEST CASES:
 
   A) Very short responses (likely to show duplicate):
      - "Ja"
-     - "Nein" 
+     - "Nein"
      - "OK"
      - "Bist du noch da?"
 
@@ -194,7 +193,7 @@ async def monitor_loop():
                     print(f"✅ Final count:   {summary['final_count']}")
 
                     if summary["final_length"] < 50:
-                        print(f"⚠️  SHORT RESPONSE - Watch for duplicate/disappearing effect!")
+                        print("⚠️  SHORT RESPONSE - Watch for duplicate/disappearing effect!")
 
                     # Clear events for next exchange
                     logger.events = []

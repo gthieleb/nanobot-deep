@@ -1,7 +1,6 @@
 """Unit tests for Telegram session handling."""
 
 import os
-import pytest
 from pathlib import Path
 
 
@@ -10,7 +9,7 @@ class TestTelegramSessionPath:
 
     def test_session_path_in_e2e_directory(self):
         """Test that session file path is correctly set for E2E tests."""
-        from scripts.auth_telethon import PROJECT_ROOT, SESSION_PATH
+        from scripts.auth_telethon import SESSION_PATH
 
         expected_path = Path(__file__).parent.parent / "tests" / "e2e" / "test_session_user"
 
@@ -39,6 +38,7 @@ class TestTelegramFixtureSessionPath:
     def test_fixture_uses_absolute_path(self):
         """Test that telegram_user_client fixture uses absolute path."""
         import inspect
+
         from tests.e2e.conftest import telegram_user_client
 
         fixture_source = inspect.getsource(telegram_user_client)
@@ -67,7 +67,6 @@ class TestTelegramAuthFlow:
         """Test that authentication code is read from environment variable."""
         os.environ["TELEGRAM_AUTH_CODE"] = "12345"
 
-        from scripts.auth_telethon import authenticate
 
         code = os.environ.get("TELEGRAM_AUTH_CODE", "")
         assert code == "12345", "Should read code from env var"

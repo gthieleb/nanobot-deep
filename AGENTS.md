@@ -43,6 +43,17 @@ NANOBOT_TEST_API_KEY=sk-xxx pytest tests/e2e/ -m live -v
 See the README configuration overview for the active config sources and examples:
 `README.md#configuration-overview`.
 
+## Architecture Direction
+
+- LLM/provider/model configuration comes from DeepAgents CLI configuration.
+- nanobot configuration is used for messaging/channels only (Telegram and message routing).
+- No cross-config fallback for LLM settings; fail fast with clear errors.
+
+Primary tracking issues:
+- #37: configuration strategy and migration execution
+- #65: DeepAgents slash commands via Telegram (epic)
+- #134: Vault setup and integration
+
 ## Documentation Workflow
 
 - Do not open PRs for docs-only changes. Commit directly to `main`.

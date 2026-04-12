@@ -19,6 +19,7 @@ dependencies = [
     "langchain-mcp-adapters>=0.1.0",
     "websockets>=16.0.0",
     "aiosqlite>=0.20.0",
+    "tomli-w>=1.0.0",
 ]
 
 [project.optional-dependencies]

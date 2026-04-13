@@ -4,8 +4,9 @@ services:
     user: 1000:1000
     command:
     - gateway
+    - --config
+    - /app/.nanobot/config-nanobot-deep.json
     environment:
-      NANOBOT_CONFIG_PATH: /app/.nanobot/config-nanobot-deep.json
       NANOBOT_WORKSPACE: /app/.nanobot/workspace
       NANOBOT_VALIDATE_MODEL_ON_START: '0'
       DEEPAGENTS_CONFIG_PATH: /app/.deepagents/config.toml

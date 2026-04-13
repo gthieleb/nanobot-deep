@@ -2,7 +2,7 @@
 
 Usage:
     # Option 1: Use existing nanobot config for channels/workspace
-    export NANOBOT_CONFIG_PATH=~/.nanobot/config.json
+    NANOBOT_TEST_CONFIG=~/.nanobot/config.json
     # Optional: Override DeepAgents config.toml path
     export DEEPAGENTS_CONFIG_PATH=~/.deepagents/config.toml
     # Optional: Use minimal deepagents test config
@@ -50,12 +50,12 @@ def pytest_configure(config):
 def nanobot_test_config() -> "Config":
     """Load nanobot config for tests.
 
-    Uses NANOBOT_TEST_CONFIG or NANOBOT_CONFIG_PATH if set, otherwise default
+    Uses NANOBOT_TEST_CONFIG if set, otherwise default
     ~/.nanobot/config.json.
     """
     from nanobot.config.loader import load_config
 
-    config_path = os.environ.get("NANOBOT_TEST_CONFIG") or os.environ.get("NANOBOT_CONFIG_PATH")
+    config_path = os.environ.get("NANOBOT_TEST_CONFIG")
     if config_path:
         config_path = Path(config_path)
     else:
@@ -64,7 +64,7 @@ def nanobot_test_config() -> "Config":
     if not config_path.exists():
         pytest.skip(
             f"Config not found at {config_path}. Set NANOBOT_TEST_CONFIG or "
-            "NANOBOT_CONFIG_PATH, or create a default config."
+            "or create a default config."
         )
 
     return load_config(config_path)

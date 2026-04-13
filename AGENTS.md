@@ -4,15 +4,6 @@ Configuration and testing guide for AI agents working on nanobot-deep.
 
 ## Environment Variables
 
-### NANOBOT_CONFIG_PATH
-Path to the nanobot configuration file. Used by tests to load model and API key.
-
-```bash
-export NANOBOT_CONFIG_PATH=~/.nanobot/config.json
-pytest tests/e2e/ -m live -v
-```
-
-Default: `~/.nanobot/config.json`
 
 ### DEEPAGENTS_CONFIG_PATH
 Path to the DeepAgents CLI model config file (config.toml). Overrides the default.
@@ -69,7 +60,7 @@ pytest tests/ -v
 ### E2E Tests (Live LLM)
 ```bash
 # Recommended: Use existing config
-export NANOBOT_CONFIG_PATH=~/.nanobot/config.json
+NANOBOT_TEST_CONFIG=~/.nanobot/config.json
 pytest tests/e2e/ -m live -v
 
 # Or override model

@@ -40,5 +40,8 @@ tests/e2e/test_session_user.session*
 # Type checking
 .mypy_cache/
 
+# Docker
+docker-compose.yml
+
 # Distribution
 *.whl

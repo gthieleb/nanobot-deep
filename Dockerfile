@@ -97,7 +97,6 @@ ENV PATH="/app/.venv/bin:$PATH" \
     PYTHONUNBUFFERED=1 \
     HOME=/app \
     XDG_CONFIG_HOME=/app/.config \
-    NANOBOT_CONFIG_PATH=/app/.nanobot/config.json \
     DEEPAGENTS_CONFIG_PATH=/app/.deepagents/config.toml \
     NANOBOT_WORKSPACE=/app/.nanobot/workspace
 

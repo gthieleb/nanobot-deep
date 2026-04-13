@@ -13,7 +13,7 @@ pytestmark = pytest.mark.live
 
 
 def _resolve_config_path() -> Path:
-    config_path = os.environ.get("NANOBOT_TEST_CONFIG") or os.environ.get("NANOBOT_CONFIG_PATH")
+    config_path = os.environ.get("NANOBOT_TEST_CONFIG")
     if config_path:
         return Path(config_path).expanduser().resolve()
     return Path.home() / ".nanobot" / "config.json"
@@ -24,7 +24,7 @@ class TestCliAgent:
         config_path = _resolve_config_path()
         if not config_path.exists():
             pytest.skip(
-                f"Config not found at {config_path}. Set NANOBOT_TEST_CONFIG or NANOBOT_CONFIG_PATH."
+                f"Config not found at {config_path}. Set NANOBOT_TEST_CONFIG."
             )
 
         workspace = tmp_path / "workspace"

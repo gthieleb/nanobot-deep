@@ -4,13 +4,16 @@ services:
       context: .
       dockerfile: Dockerfile
     image: nanobot-deep:dev
+    command:
+    - gateway
+    - --config
+    - /app/.nanobot/config.json
     volumes:
     - ./nanobot_deep:/app/nanobot_deep
     - ./templates:/app/templates
     - ${HOME}/.nanobot:/app/.nanobot
     - ${HOME}/.deepagents/config.toml:/app/.deepagents/config.toml:ro
     environment:
-      NANOBOT_CONFIG_PATH: /app/.nanobot/config.json
       NANOBOT_WORKSPACE: /app/.nanobot/workspace
       DEEPAGENTS_CONFIG_PATH: /app/.deepagents/config.toml
       XDG_CONFIG_HOME: /app/.config

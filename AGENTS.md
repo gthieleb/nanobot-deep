@@ -45,6 +45,12 @@ Primary tracking issues:
 - #65: DeepAgents slash commands via Telegram (epic)
 - #134: Vault setup and integration
 
+## Known Upstream Issues (deepagents-cli)
+
+- `create_model()` early credential check ignores `params.api_key` from `config.toml` ([langchain-ai/deepagents#2724](https://github.com/langchain-ai/deepagents/issues/2724)).
+  Workaround: set `LITELLM_API_KEY` (or the relevant provider env var) explicitly in Docker environment.
+  Affects any provider using `params.api_key` instead of `api_key_env` or env vars.
+
 ## Documentation Workflow
 
 - Do not open PRs for docs-only changes. Commit directly to `main`.

@@ -50,6 +50,8 @@ Primary tracking issues:
 - `create_model()` early credential check ignores `params.api_key` from `config.toml` ([langchain-ai/deepagents#2724](https://github.com/langchain-ai/deepagents/issues/2724)).
   Workaround: set `LITELLM_API_KEY` (or the relevant provider env var) explicitly in Docker environment.
   Affects any provider using `params.api_key` instead of `api_key_env` or env vars.
+- When filing issues on `langchain-ai/deepagents`, **you must use an issue template** or the bot auto-closes immediately.
+  Use: `gh issue create --repo langchain-ai/deepagents --body-file` with the bug-report template checklist included.
 
 ## Documentation Workflow
 

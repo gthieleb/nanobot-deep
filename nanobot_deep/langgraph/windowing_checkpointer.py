@@ -2,6 +2,8 @@ from __future__ import annotations
 
 from typing import TYPE_CHECKING, Any
 
+from langgraph.checkpoint.base import BaseCheckpointSaver
+
 if TYPE_CHECKING:
     from langgraph.checkpoint.base import Checkpoint, CheckpointTuple
 
@@ -53,13 +55,25 @@ def _window_checkpoint_tuple(
     )
 
 
-class WindowingCheckpointerWrapper:
+class WindowingCheckpointerWrapper(BaseCheckpointSaver):
+    _OWN_METHODS = frozenset({"get_tuple", "aget_tuple", "get", "aget"})
+
     def __init__(self, checkpointer: Any, memory_window: int):
+        super().__init__()
         self._checkpointer = checkpointer
         self._memory_window = memory_window
 
-    def __getattr__(self, name: str) -> Any:
-        return getattr(self._checkpointer, name)
+    def __getattribute__(self, name: str) -> Any:
+        if name.startswith("_") or name == "__class__":
+            return object.__getattribute__(self, name)
+        own_methods = object.__getattribute__(self, "_OWN_METHODS")
+        if name in own_methods:
+            return object.__getattribute__(self, name)
+        try:
+            checkpointer = object.__getattribute__(self, "_checkpointer")
+            return getattr(checkpointer, name)
+        except AttributeError:
+            return object.__getattribute__(self, name)
 
     def get_tuple(self, config: dict[str, Any]):
         result = self._checkpointer.get_tuple(config)

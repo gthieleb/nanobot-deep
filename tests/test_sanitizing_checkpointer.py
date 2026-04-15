@@ -4,10 +4,14 @@ from __future__ import annotations
 
 from unittest.mock import MagicMock
 
+import pytest
+from langgraph.checkpoint.base import BaseCheckpointSaver
+
 from nanobot_deep.langgraph.sanitizing_checkpointer import (
     SanitizingCheckpointerWrapper,
     wrap_checkpointer_with_sanitizer,
 )
+from nanobot_deep.langgraph.windowing_checkpointer import WindowingCheckpointerWrapper
 
 
 class TestSanitizingCheckpointerWrapper:
@@ -154,3 +158,41 @@ class TestSanitizingCheckpointerWrapper:
         wrapper.delete_thread("test-thread")
 
         mock_checkpointer.delete_thread.assert_called_once_with("test-thread")
+
+
+class TestIsinstanceValidation:
+    def test_isinstance_base_checkpointer_saver(self):
+        w = SanitizingCheckpointerWrapper(MagicMock())
+
+        assert isinstance(w, BaseCheckpointSaver)
+
+    def test_wrap_returns_base_checkpointer_saver(self):
+        wrapped = wrap_checkpointer_with_sanitizer(MagicMock())
+
+        assert isinstance(wrapped, BaseCheckpointSaver)
+
+    def test_double_wrap_isinstance(self):
+        sanitized = SanitizingCheckpointerWrapper(MagicMock())
+        windowed = WindowingCheckpointerWrapper(sanitized, 10)
+
+        assert isinstance(windowed, BaseCheckpointSaver)
+
+    def test_ensure_valid_checkpointer_no_raise(self):
+        wrapper = SanitizingCheckpointerWrapper(MagicMock())
+
+        try:
+            from langgraph.graph.state import ensure_valid_checkpointer
+        except ImportError:
+            try:
+                from langgraph.pregel import ensure_valid_checkpointer
+            except ImportError:
+                pytest.skip("ensure_valid_checkpointer import path unavailable")
+
+        assert ensure_valid_checkpointer(wrapper) is wrapper
+
+    def test_wrap_idempotency(self):
+        mock_checkpointer = MagicMock()
+        wrapped_once = wrap_checkpointer_with_sanitizer(mock_checkpointer)
+        wrapped_twice = wrap_checkpointer_with_sanitizer(wrapped_once)
+
+        assert wrapped_twice is wrapped_once

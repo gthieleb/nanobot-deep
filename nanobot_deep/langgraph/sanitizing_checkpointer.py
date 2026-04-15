@@ -4,10 +4,11 @@ from __future__ import annotations
 
 from typing import TYPE_CHECKING, Any
 
+from langgraph.checkpoint.base import BaseCheckpointSaver
 from loguru import logger
 
 if TYPE_CHECKING:
-    from langgraph.checkpoint.base import BaseCheckpointSaver
+    pass
 
 
 def _sanitize_value(value: Any) -> Any:
@@ -60,32 +61,7 @@ def _sanitize_writes(writes: list[tuple[str, Any]]) -> list[tuple[str, Any]]:
     return sanitized_writes
 
 
-def _make_sanitizing_method(method_name: str):
-    """Create a sanitizing wrapper for an async method."""
-    original_method = None
-
-    async def sanitizing_method(self, *args, **kwargs):
-        nonlocal original_method
-        if original_method is None:
-            original_method = getattr(type(self).__bases__[0], method_name)
-
-        if method_name in ("aput", "put"):
-            checkpoint = args[1] if len(args) > 1 else kwargs.get("checkpoint")
-            if checkpoint:
-                sanitized = _sanitize_checkpoint(checkpoint)
-                args = (args[0], sanitized, *args[2:])
-        elif method_name in ("aput_writes", "put_writes"):
-            writes = args[1] if len(args) > 1 else kwargs.get("writes")
-            if writes:
-                sanitized = _sanitize_writes(writes)
-                args = (args[0], sanitized, *args[2:])
-
-        return await original_method(self, *args, **kwargs)
-
-    return sanitizing_method
-
-
-class SanitizingCheckpointerWrapper:
+class SanitizingCheckpointerWrapper(BaseCheckpointSaver):
     """Wrapper that sanitizes messages before checkpointing.
 
     This wrapper strips problematic fields like `reasoning` from `additional_kwargs`
@@ -100,24 +76,23 @@ class SanitizingCheckpointerWrapper:
     may access directly.
     """
 
+    _OWN_METHODS = frozenset({"aput", "put", "aput_writes", "put_writes"})
+
     def __init__(self, checkpointer: "BaseCheckpointSaver"):
+        super().__init__()
         self._checkpointer = checkpointer
 
     def __getattribute__(self, name: str) -> Any:
-        """Delegate all attribute access to wrapped checkpointer."""
-        if name == "_checkpointer":
+        if name.startswith("_") or name == "__class__":
             return object.__getattribute__(self, name)
-        # Check if attribute exists on the wrapper itself first
+        own_methods = object.__getattribute__(self, "_OWN_METHODS")
+        if name in own_methods:
+            return object.__getattribute__(self, name)
         try:
-            attr = object.__getattribute__(self, name)
-            return attr
+            checkpointer = object.__getattribute__(self, "_checkpointer")
+            return getattr(checkpointer, name)
         except AttributeError:
-            # If not found on wrapper, delegate to checkpointer
-            return getattr(self._checkpointer, name)
-
-    def __getattr__(self, name: str) -> Any:
-        """Delegate to wrapped checkpointer for any missing attributes."""
-        return getattr(self._checkpointer, name)
+            return object.__getattribute__(self, name)
 
     async def aput(
         self,

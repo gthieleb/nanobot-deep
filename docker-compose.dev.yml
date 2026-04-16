@@ -13,9 +13,13 @@ services:
     - ./templates:/app/templates
     - ${HOME}/.nanobot:/app/.nanobot
     - ${HOME}/.deepagents/config.toml:/app/.deepagents/config.toml:ro
+    env_file:
+    - path: .env
+      required: false
     environment:
       NANOBOT_WORKSPACE: /app/.nanobot/workspace
       DEEPAGENTS_CONFIG_PATH: /app/.deepagents/config.toml
       XDG_CONFIG_HOME: /app/.config
+      LITELLM_API_KEY: ${LITELLM_API_KEY:-}
     ports:
     - 127.0.0.1:18790:18790

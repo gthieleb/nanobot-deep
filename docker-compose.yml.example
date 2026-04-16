@@ -6,11 +6,15 @@ services:
     - gateway
     - --config
     - /app/.nanobot/config-nanobot-deep.json
+    env_file:
+    - path: .env
+      required: false
     environment:
       NANOBOT_WORKSPACE: /app/.nanobot/workspace
       NANOBOT_VALIDATE_MODEL_ON_START: '0'
       DEEPAGENTS_CONFIG_PATH: /app/.deepagents/config.toml
       XDG_CONFIG_HOME: /app/.config
+      LITELLM_API_KEY: ${LITELLM_API_KEY:-}
     volumes:
     - ${HOME}/.nanobot:/app/.nanobot
     - ${HOME}/.deepagents/config.toml:/app/.deepagents/config.toml:ro

@@ -47,9 +47,11 @@ Primary tracking issues:
 
 ## Known Upstream Issues (deepagents-cli)
 
-- `create_model()` early credential check ignores `params.api_key` from `config.toml` ([langchain-ai/deepagents#2724](https://github.com/langchain-ai/deepagents/issues/2724)).
-  Workaround: set `LITELLM_API_KEY` (or the relevant provider env var) explicitly in Docker environment.
-  Affects any provider using `params.api_key` instead of `api_key_env` or env vars.
+- `create_model()` early credential check ignores `params.api_key` from `config.toml`
+  ([langchain-ai/deepagents#2724](https://github.com/langchain-ai/deepagents/issues/2724),
+  docs updated in [#2770](https://github.com/langchain-ai/deepagents/pull/2770)).
+  **Fix:** Use `api_key_env = "LITELLM_API_KEY"` in the provider config section (not in `params`).
+  Set the actual key via env var or `.env` file. Docker Compose files include `env_file` reference.
 - When filing issues on `langchain-ai/deepagents`, **you must use an issue template** or the bot auto-closes immediately.
   Use: `gh issue create --repo langchain-ai/deepagents --body-file` with the bug-report template checklist included.
 
@@ -92,7 +94,8 @@ Keep entries concise and include:
 When using the DeepAgents `litellm` provider in `~/.deepagents/config.toml`:
 
 - For z.ai, use model names with the `zai/` prefix (for example `litellm:zai/glm-4.5`).
-- A single provider-level `api_key` under `[models.providers.litellm.params]` works as a global default.
+- **Do not set `api_key` in `params`** — the early credential check runs before `params` are read ([#2724](https://github.com/langchain-ai/deepagents/issues/2724)). Use `api_key_env` at the provider level instead.
+- Correct pattern: `api_key_env = "LITELLM_API_KEY"` in the provider section, then set the key via env var or `.env` file.
 - You are not limited to one key overall: for multiple providers you can use provider-specific environment variables (for example `OPENAI_API_KEY`, `ANTHROPIC_API_KEY`, `ZAI_API_KEY`) and/or per-model overrides under `params`.
 - A LiteLLM proxy is optional and only needed when you want centralized routing/policies/logging; it is not required just to use multiple provider keys.
 
@@ -162,17 +165,26 @@ See [Testing](../../README.md#telegram-e2e-tests) section in main README.md for 
 The model is configured in `~/.deepagents/config.toml`:
 
 ```toml
+[models]
+default = "litellm:zai/glm-4.5"
+
 [models.providers.litellm]
 enabled = true
 models = ["zai/glm-4.5", "zai/glm-4.5-air"]
+api_key_env = "LITELLM_API_KEY"
 
 [models.providers.litellm.params]
-api_key = "************"
 api_base = "https://api.z.ai/api/paas/v4"
 temperature = 0.1
 
-[models.providers.anthropic.params]
-api_key = "******************"
+[models.providers.anthropic]
+api_key_env = "ANTHROPIC_API_KEY"
+```
+
+Set the actual API key via environment variable or `.env` file:
+
+```bash
+export LITELLM_API_KEY="sk-..."
 ```
 
 ## Langfuse Observability

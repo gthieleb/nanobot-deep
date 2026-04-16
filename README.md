@@ -33,6 +33,21 @@ docker compose -f docker-compose.yml -f docker-compose.dev.yml up -d --build
 Code changes in `./nanobot_deep` and `./templates` are picked up on restart.
 If you change dependencies, rebuild the image.
 
+### Provider Credentials in Docker
+
+Provider API keys must be available as environment variables — they cannot be read from `params.api_key` in `config.toml` due to an upstream limitation ([deepagents-cli#2724](https://github.com/langchain-ai/deepagents/issues/2724)). Use `api_key_env` in the provider config and pass the key via Docker environment.
+
+Create a `.env` file next to your `docker-compose.yml`:
+
+```bash
+# .env
+LITELLM_API_KEY=sk-your-key-here
+# ANTHROPIC_API_KEY=sk-...
+# OPENAI_API_KEY=sk-...
+```
+
+Docker Compose automatically reads `.env` files for variable substitution (`${LITELLM_API_KEY}`).
+
 **Config file permissions**: If using Docker, ensure config files in `~/.nanobot/`
 are readable by the container. Add the container user to your group or set
 files to world-readable.
@@ -413,8 +428,30 @@ These notes apply to `~/.deepagents/config.toml` model/provider settings.
 When using DeepAgents with the `litellm` provider in `~/.deepagents/config.toml`:
 
 - Use `zai/` model names for z.ai (for example `litellm:zai/glm-4.5`).
-- A provider-level `api_key` under `[models.providers.litellm.params]` can be used as a global default key.
-- You are not limited to one key overall. For multi-provider setups, use provider-specific env vars (for example `OPENAI_API_KEY`, `ANTHROPIC_API_KEY`, `ZAI_API_KEY`) and/or per-model `params` overrides.
+- **Do not set `api_key` in `params`** — the deepagents-cli early credential check runs before `params` are read, so the key is never seen ([langchain-ai/deepagents#2724](https://github.com/langchain-ai/deepagents/issues/2724)). Use `api_key_env` at the provider level instead.
+- Correct config layout:
+
+```toml
+[models]
+default = "litellm:zai/glm-4.5"
+
+[models.providers.litellm]
+enabled = true
+models = ["zai/glm-4.5", "zai/glm-4.5-air"]
+api_key_env = "LITELLM_API_KEY"
+
+[models.providers.litellm.params]
+api_base = "https://api.z.ai/api/paas/v4"
+temperature = 0.1
+```
+
+Then set the actual key in your environment or `.env` file:
+
+```bash
+export LITELLM_API_KEY="sk-your-key-here"
+```
+
+- You are not limited to one key overall. For multi-provider setups, use provider-specific env vars (for example `OPENAI_API_KEY`, `ANTHROPIC_API_KEY`, `ZAI_API_KEY`) and/or per-model overrides under `params`.
 - A LiteLLM proxy is optional. Use it for centralized routing/policies/logging, not because multiple keys are otherwise impossible.
 
 ## Langfuse Observability

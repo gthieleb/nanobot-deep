@@ -1,6 +1,6 @@
 [project]
 name = "nanobot-deep"
-version = "0.13.6"
+version = "0.13.7"
 description = "LangGraph/DeepAgents integration for nanobot"
 requires-python = ">=3.11"
 license = {text = "MIT"}

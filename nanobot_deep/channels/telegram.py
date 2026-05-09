@@ -221,6 +221,7 @@ class CustomTelegramChannel(TelegramChannel):
                 text=message_text,
                 parse_mode="HTML",
                 reply_markup=keyboard,
+                message_thread_id=interrupt.message_thread_id,
             )
             REGISTRY.set_message_id(interrupt.tool_call_id, message.message_id)
             logger.info(

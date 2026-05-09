@@ -29,6 +29,7 @@ class PendingInterrupt:
     description: str
     allowed_decisions: list[str]
     message_id: int | None = None
+    message_thread_id: str | None = None
     timeout: float = 60.0
     created_at: float = field(default_factory=time.time)
 

@@ -391,7 +391,9 @@ class DeepAgent:
                 "chat_id": msg.chat_id,
                 "user_id": msg.sender_id,
                 "is_group": msg.metadata.get("is_group", False) if msg.metadata else False,
-                "message_thread_id": msg.metadata.get("message_thread_id") if msg.metadata else None,
+                "message_thread_id": msg.metadata.get("message_thread_id")
+                if msg.metadata
+                else None,
             },
         }
 
@@ -484,7 +486,9 @@ class DeepAgent:
                     tool_args=tool_args,
                     description=description,
                     allowed_decisions=allowed_decisions,
-                    message_thread_id=msg.metadata.get("message_thread_id") if msg.metadata else None,
+                    message_thread_id=msg.metadata.get("message_thread_id")
+                    if msg.metadata
+                    else None,
                     timeout=self.dg_config.interrupt_on.auto_reject_timeout
                     if hasattr(self.dg_config, "interrupt_on")
                     else 60.0,

@@ -140,7 +140,7 @@ jobs:
           minor_pattern: "/^feat(\\(.+\\))?:/"
           version_format: "${major}.${minor}.${patch}"
           search_commit_body: true
-          bump_each_commit: true
+          bump_each_commit: false
           bump_each_commit_patch_pattern: "/^fix(\\(.+\\))?:/"
           user_format_type: "csv"
 
@@ -361,7 +361,7 @@ jobs:
           fi
 
   update-docker-compose:
-    name: Update docker-compose.yml
+    name: Update docker-compose.yml.example
     needs: [docker-manifest, versioning, sync_version]
     if: github.ref == 'refs/heads/main' && needs.versioning.outputs.is_prerelease == 'false' && needs.sync_version.outputs.version_synced == 'true'
     runs-on: ubuntu-latest
@@ -374,7 +374,7 @@ jobs:
       - name: Install PyYAML
         run: pip install --no-cache-dir pyyaml
 
-      - name: Update image tag in docker-compose.yml
+      - name: Update image tag in docker-compose.yml.example
         env:
           VERSION: ${{ needs.versioning.outputs.version }}
         run: |
@@ -383,12 +383,12 @@ jobs:
           import yaml
 
           version = os.environ["VERSION"]
-          with open("docker-compose.yml", "r") as f:
+          with open("docker-compose.yml.example", "r") as f:
             doc = yaml.safe_load(f)
 
           doc["services"]["nanobot-deep"]["image"] = f"ghcr.io/gthieleb/nanobot-deep:{version}"
 
-          with open("docker-compose.yml", "w") as f:
+          with open("docker-compose.yml.example", "w") as f:
             yaml.dump(doc, f, default_flow_style=False, sort_keys=False)
           print(f"Updated image to ghcr.io/gthieleb/nanobot-deep:{version}")
           PY
@@ -402,8 +402,8 @@ jobs:
 
           git config user.name "github-actions[bot]"
           git config user.email "github-actions[bot]@users.noreply.github.com"
-          git add docker-compose.yml
-          git commit -m "chore(deps): update docker-compose.yml to v${{ needs.versioning.outputs.version }}"
+          git add docker-compose.yml.example
+          git commit -m "chore(deps): update docker-compose.yml.example to v${{ needs.versioning.outputs.version }}"
           git push
 
   release:

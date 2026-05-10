@@ -5,6 +5,52 @@ from __future__ import annotations
 from langchain_core.messages import AIMessage, HumanMessage, SystemMessage, ToolMessage
 
 
+class TestBuildSessionKey:
+    def test_build_session_key_dm(self):
+        from nanobot.bus.events import InboundMessage
+
+        from nanobot_deep.langgraph.bridge import build_session_key
+
+        msg = InboundMessage(
+            channel="telegram",
+            sender_id="user123",
+            chat_id="123",
+            content="Hello",
+        )
+
+        assert build_session_key(msg) == "nanobot:telegram:dm:123"
+
+    def test_build_session_key_topic(self):
+        from nanobot.bus.events import InboundMessage
+
+        from nanobot_deep.langgraph.bridge import build_session_key
+
+        msg = InboundMessage(
+            channel="telegram",
+            sender_id="user123",
+            chat_id="123",
+            content="Hello",
+            metadata={"is_group": True, "is_forum": True, "message_thread_id": 456},
+        )
+
+        assert build_session_key(msg) == "nanobot:telegram:topic:123:456"
+
+    def test_build_session_key_group(self):
+        from nanobot.bus.events import InboundMessage
+
+        from nanobot_deep.langgraph.bridge import build_session_key
+
+        msg = InboundMessage(
+            channel="telegram",
+            sender_id="user123",
+            chat_id="123",
+            content="Hello",
+            metadata={"is_group": True},
+        )
+
+        assert build_session_key(msg) == "nanobot:telegram:group:123"
+
+
 class TestTranslateInboundToState:
     """Tests for translate_inbound_to_state function."""
 

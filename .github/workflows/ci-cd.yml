@@ -150,7 +150,7 @@ jobs:
       - name: Check if prerelease
         id: check_prerelease
         run: |
-          if [[ "${{ github.ref }}" == "refs/heads/main" ]]; then
+          if [[ "${{ github.ref }}" == "refs/heads/main" ]] || [[ "${{ github.base_ref }}" == "main" ]]; then
             echo "is_prerelease=false" >> $GITHUB_OUTPUT
           else
             echo "is_prerelease=true" >> $GITHUB_OUTPUT
@@ -329,7 +329,7 @@ jobs:
   docker-manifest:
     name: Create Multi-Arch Docker Manifest
     needs: [docker-build-amd64, docker-build-arm64, versioning, sync_version]
-    if: github.ref == 'refs/heads/main' && needs.sync_version.outputs.version_synced == 'true'
+    if: (github.ref == 'refs/heads/main' || github.base_ref == 'main') && needs.sync_version.outputs.version_synced == 'true'
     runs-on: ubuntu-latest
     steps:
       - name: Set up Docker Buildx
@@ -366,7 +366,7 @@ jobs:
   update-docker-compose:
     name: Update docker-compose.yml.example
     needs: [docker-manifest, versioning, sync_version]
-    if: github.ref == 'refs/heads/main' && needs.versioning.outputs.is_prerelease == 'false' && needs.sync_version.outputs.version_synced == 'true'
+    if: (github.ref == 'refs/heads/main' || github.base_ref == 'main') && needs.versioning.outputs.is_prerelease == 'false' && needs.sync_version.outputs.version_synced == 'true'
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
@@ -412,7 +412,7 @@ jobs:
   release:
     name: Create GitHub Release
     needs: [update-docker-compose, versioning]
-    if: github.ref == 'refs/heads/main' && needs.versioning.outputs.is_prerelease == 'false' && needs.sync_version.outputs.version_synced == 'true'
+    if: (github.ref == 'refs/heads/main' || github.base_ref == 'main') && needs.versioning.outputs.is_prerelease == 'false' && needs.sync_version.outputs.version_synced == 'true'
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4

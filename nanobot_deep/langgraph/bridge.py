@@ -22,6 +22,21 @@ if TYPE_CHECKING:
     from nanobot.bus.events import InboundMessage, OutboundMessage
 
 
+def build_session_key(msg: "InboundMessage") -> str:
+    """Build Hermes-style session keys for Telegram conversations."""
+    metadata = msg.metadata or {}
+    chat_id = msg.chat_id
+    thread_id = metadata.get("message_thread_id")
+
+    if metadata.get("is_group") and metadata.get("is_forum") and thread_id is not None:
+        return f"nanobot:telegram:topic:{chat_id}:{thread_id}"
+
+    if metadata.get("is_group"):
+        return f"nanobot:telegram:group:{chat_id}"
+
+    return f"nanobot:telegram:dm:{chat_id}"
+
+
 def translate_inbound_to_state(
     msg: "InboundMessage",
     history: list[dict] | None = None,

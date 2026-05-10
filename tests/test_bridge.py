@@ -100,6 +100,39 @@ class TestTranslateInboundToState:
         assert "manager" in state["messages"][0].content
         assert "Do you agree with this proposal?" in state["messages"][0].content
 
+    def test_message_with_metadata_system_message(self):
+        """Test message with metadata adds SystemMessage with channel context."""
+        from nanobot.bus.events import InboundMessage
+
+        from nanobot_deep.langgraph.bridge import translate_inbound_to_state
+
+        msg = InboundMessage(
+            channel="telegram",
+            sender_id="user123",
+            chat_id="chat456",
+            content="Hello in thread!",
+            metadata={
+                "user_id": 12345,
+                "username": "alice",
+                "message_thread_id": 789,
+                "is_group": True,
+                "is_forum": True,
+            },
+        )
+
+        state = translate_inbound_to_state(msg)
+
+        system_messages = [m for m in state["messages"] if isinstance(m, SystemMessage)]
+        assert len(system_messages) == 1
+
+        meta_content = system_messages[0].content
+        assert "[Channel]" in meta_content
+        assert "channel=telegram" in meta_content
+        assert "chat_id=chat456" in meta_content
+        assert "thread_id=789" in meta_content
+        assert "is_group=True" in meta_content
+        assert "is_forum=True" in meta_content
+
 
 class TestTranslateResultToOutbound:
     """Tests for translate_result_to_outbound function."""

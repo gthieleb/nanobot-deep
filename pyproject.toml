@@ -9,8 +9,8 @@ authors = [
 ]
 keywords = ["ai", "agent", "langgraph", "deepagents"]
 dependencies = [
-    "nanobot-ai>=0.1.4",
-    "deepagents>=0.4.0",
+    "nanobot-ai>=0.1.5",
+    "deepagents>=0.5.8",
     "deepagents-cli>=0.0.37",
     "langgraph>=0.2.0",
     "langgraph-checkpoint-sqlite>=3.0.0",

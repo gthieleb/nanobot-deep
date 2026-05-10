@@ -528,18 +528,31 @@ export OTEL_SERVICE_NAME="nanobot-deep"
 
 This project uses [Conventional Commits](https://www.conventionalcommits.org/) for semantic versioning and automated releases.
 
-**Types**: `feat:`, `fix:`, `docs:`, `style:`, `refactor:`, `perf:`, `test:`, `chore:`, `ci:`
+**Version Bump by Commit Type:**
 
-**Breaking changes**: Add `!` after type or `BREAKING CHANGE:` in footer (triggers major version bump).
+| Commit | Bump | Description |
+|--------|------|-------------|
+| `feat:` | minor | New feature |
+| `feat(scope):` | minor | Feature with scope |
+| `fix:` | patch | Bug fix |
+| `fix(code):` | patch | Code bug fix |
+| `fix(ci):` | **none** | CI/Docs fix (ignored) |
+| `chore:` | **none** | Maintenance (ignored) |
+| `docs:`, `refactor:`, `test:` | **none** | Non-production (ignored) |
+| `feat!:` or `BREAKING CHANGE:` | major | Breaking change |
+
+**Breaking changes**: Add `!` after type or `BREAKING CHANGE:` in footer.
 
 **Quick examples**:
 ```bash
-git commit -m "feat: add A2A agent-to-agent protocol support"
-git commit -m "fix: resolve AsyncSqliteSaver compatibility issue"
-git commit -m "feat!: remove support for Python 3.11"
+git commit -m "feat: add streaming support"
+git commit -m "fix: resolve compatibility issue"
+git commit -m "fix(ci): update CI pipeline"
+git commit -m "chore: update dependencies"
+git commit -m "feat!: remove legacy API"
 ```
 
-See `AGENTS.md#conventional-commits` for full documentation including scopes, validation, and CI/CD integration.
+See `AGENTS.md#conventional-commits` for scopes, validation, and CI/CD integration.
 
 ### Development Workflow
 

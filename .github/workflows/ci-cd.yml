@@ -144,7 +144,8 @@ jobs:
           version_format: "${major}.${minor}.${patch}"
           search_commit_body: true
           bump_each_commit: false
-          bump_each_commit_patch_pattern: "/^fix(\\(.+\\))?:/"
+          bump_each_commit_patch_pattern: "^fix(:|\\([^)]+\\):)"
+          ignore_commits_pattern: "^(chore|fix\\(ci\\)):"
           user_format_type: "csv"
 
       - name: Check if prerelease

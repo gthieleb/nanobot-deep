@@ -485,7 +485,8 @@ BREAKING CHANGE: SessionCheckpointer removed, use AsyncSqliteSaver directly
 
 1. **Automated Versioning**: Semantic versions generated automatically
    - `feat:` → minor bump (0.1.0 → 0.2.0)
-   - `fix:` → patch bump (0.1.0 → 0.1.1)
+   - `fix:` or `fix(code):` → patch bump (0.1.0 → 0.1.1)
+   - `fix(ci):`, `chore:`, `docs:`, `refactor:` → **ignored** (no bump)
    - `feat!:` or `BREAKING CHANGE:` → major bump (0.1.0 → 1.0.0)
 
 2. **Clear History**: Easy to understand what changed

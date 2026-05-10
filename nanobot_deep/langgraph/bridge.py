@@ -75,6 +75,22 @@ def translate_inbound_to_state(
             elif role == "system":
                 messages.append(SystemMessage(content=str(content)))
 
+    if msg.metadata:
+        meta_parts = [
+            f"channel={msg.channel}",
+            f"chat_id={msg.chat_id}",
+            f"user_id={msg.metadata.get('user_id', 'unknown')}",
+        ]
+        if msg.metadata.get("message_thread_id"):
+            meta_parts.append(f"thread_id={msg.metadata['message_thread_id']}")
+        if msg.metadata.get("is_group"):
+            meta_parts.append(f"is_group={msg.metadata['is_group']}")
+        if msg.metadata.get("is_forum"):
+            meta_parts.append(f"is_forum={msg.metadata['is_forum']}")
+
+        meta_msg = "[Channel] " + ", ".join(meta_parts)
+        messages.append(SystemMessage(content=meta_msg))
+
     if msg.media:
         content_blocks: list[dict[str, Any]] = [{"type": "text", "text": msg.content}]
         for media in msg.media:

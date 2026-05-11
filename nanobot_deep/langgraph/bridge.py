@@ -22,6 +22,21 @@ if TYPE_CHECKING:
     from nanobot.bus.events import InboundMessage, OutboundMessage
 
 
+def build_session_key(msg: "InboundMessage") -> str:
+    """Build Hermes-style session keys for Telegram conversations."""
+    metadata = msg.metadata or {}
+    chat_id = msg.chat_id
+    thread_id = metadata.get("message_thread_id")
+
+    if metadata.get("is_group") and metadata.get("is_forum") and thread_id is not None:
+        return f"nanobot:telegram:topic:{chat_id}:{thread_id}"
+
+    if metadata.get("is_group"):
+        return f"nanobot:telegram:group:{chat_id}"
+
+    return f"nanobot:telegram:dm:{chat_id}"
+
+
 def translate_inbound_to_state(
     msg: "InboundMessage",
     history: list[dict] | None = None,
@@ -40,6 +55,19 @@ def translate_inbound_to_state(
         LangGraph state dict with 'messages' key
     """
     messages = []
+    metadata = msg.metadata or {}
+
+    def _format_location(value: Any) -> str | None:
+        if isinstance(value, (list, tuple)) and len(value) >= 2:
+            return f"{value[0]},{value[1]}"
+        if isinstance(value, dict):
+            lat = value.get("lat", value.get("latitude"))
+            lon = value.get("lon", value.get("lng", value.get("longitude")))
+            if lat is not None and lon is not None:
+                return f"{lat},{lon}"
+        if value is not None:
+            return str(value)
+        return None
 
     if system_prompt:
         messages.append(SystemMessage(content=system_prompt))
@@ -75,20 +103,28 @@ def translate_inbound_to_state(
             elif role == "system":
                 messages.append(SystemMessage(content=str(content)))
 
-    if msg.metadata:
+    if metadata:
+        timestamp = metadata.get("timestamp") or metadata.get("date")
+        location_str = _format_location(metadata.get("location"))
+        thread_id = metadata.get("thread_id")
+        if thread_id is None:
+            thread_id = metadata.get("message_thread_id")
+
         meta_parts = [
             f"channel={msg.channel}",
             f"chat_id={msg.chat_id}",
             f"user_id={msg.metadata.get('user_id', 'unknown')}",
+            f"timestamp={timestamp}" if timestamp is not None else None,
+            f"location={location_str}" if location_str else None,
         ]
-        if msg.metadata.get("message_thread_id"):
-            meta_parts.append(f"thread_id={msg.metadata['message_thread_id']}")
-        if msg.metadata.get("is_group"):
-            meta_parts.append(f"is_group={msg.metadata['is_group']}")
-        if msg.metadata.get("is_forum"):
-            meta_parts.append(f"is_forum={msg.metadata['is_forum']}")
+        if thread_id is not None:
+            meta_parts.append(f"thread_id={thread_id}")
+        if metadata.get("is_group"):
+            meta_parts.append(f"is_group={metadata['is_group']}")
+        if metadata.get("is_forum"):
+            meta_parts.append(f"is_forum={metadata['is_forum']}")
 
-        meta_msg = "[Channel] " + ", ".join(meta_parts)
+        meta_msg = "[Channel] " + ", ".join(part for part in meta_parts if part)
         messages.append(SystemMessage(content=meta_msg))
 
     if msg.media:
@@ -105,7 +141,18 @@ def translate_inbound_to_state(
     else:
         messages.append(HumanMessage(content=msg.content))
 
-    return {"messages": messages}
+    return {
+        "messages": messages,
+        "metadata": {
+            "channel": msg.channel,
+            "chat_id": msg.chat_id,
+            "thread_id": metadata.get("thread_id")
+            if metadata.get("thread_id") is not None
+            else metadata.get("message_thread_id"),
+            "timestamp": metadata.get("timestamp") or metadata.get("date"),
+            "location": _format_location(metadata.get("location")),
+        },
+    }
 
 
 def extract_reply_context(msg: "InboundMessage") -> dict[str, Any] | None:

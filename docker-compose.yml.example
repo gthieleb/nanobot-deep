@@ -1,6 +1,6 @@
 services:
   nanobot-deep:
-    image: ghcr.io/gthieleb/nanobot-deep:0.15.0
+    image: ghcr.io/gthieleb/nanobot-deep:0.16.0
     user: 1000:1000
     command:
     - gateway
